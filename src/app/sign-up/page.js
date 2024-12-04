@@ -36,7 +36,7 @@ function SignupForm() {
                   placeholder="kimthona@gmail.com"
                   required
                 />
-              </div>
+              </div> 
               <div>
                 <label
                   htmlFor="password"
