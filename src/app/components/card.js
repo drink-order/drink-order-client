@@ -1,6 +1,6 @@
 import React from 'react';
 
-export const Card = () => {
+export default function Card (){
   return (
     <div className="max-w-xs mx-auto p-4 border border-[black] rounded-lg shadow-lg ">
       {/* Product Image */}
@@ -9,7 +9,7 @@ export const Card = () => {
       </div>
       {/* Product Title */}
       <div className="flex justify-between items-center">
-        <h2 className="text-lg font-semibold text-center mb-2">Creamy Latte</h2>
+        <h2 className="text-lg font-semibold text-center mb-2">Strawberry Frappe</h2>
         <p className="text-sm text-gray-500 text-center mb-1">200+ sold</p>
       </div>
 
