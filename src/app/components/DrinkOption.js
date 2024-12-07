@@ -50,7 +50,7 @@ const DrinkOption = () => {
                     {["S", "M", "L"].map((size) => (
                         <button
                             key={size}
-                            className={`px-4 py-2 border-2 rounded-lg cursor-pointer text-sm transition-all 
+                            className={`w-14 py-2 border-2 rounded-lg cursor-pointer text-sm transition-all 
                                 ${isSelected("size", size)
                                     ? "text-[#5D4435] bg-[#fcefe6] border-[#f39c12] font-bold"
                                     : "border-[#ccc] bg-white"
@@ -70,7 +70,7 @@ const DrinkOption = () => {
                     {["30%", "50%", "70%", "100%"].map((sugar) => (
                         <button
                             key={sugar}
-                            className={`px-4 py-2 border-2 rounded-lg cursor-pointer text-sm transition-all ${
+                            className={`w-14 py-2 border-2 rounded-lg cursor-pointer text-sm transition-all ${
                                 isSelected("sugar", sugar)
                                     ? "text-[#5D4435] bg-[#fcefe6] border-[#f39c12] font-bold"
                                     : "border-[#ccc] bg-white"
@@ -90,10 +90,10 @@ const DrinkOption = () => {
                     {["Boba", "RedBeans", "Jelly", "Pearl"].map((topping, index) => (
                         <button
                             key={index}
-                            className={`px-4 py-2 border-2 rounded-lg cursor-pointer text-sm transition-all ${
+                            className={`w-20 py-2 border-2 rounded-lg cursor-pointer text-sm transition-all ${
                                 isSelected("topping", topping)
                                     ? "text-[#5D4435] bg-[#fcefe6] border-[#f39c12] font-bold"
-                                    : "border-[#ccc] bg-white"
+                                    : "border-gray4 bg-white"
                             }`}
                             onClick={(e) => handleSelection(e, "topping")}
                         >
