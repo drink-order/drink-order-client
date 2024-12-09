@@ -1,7 +1,7 @@
 import React from 'react';
 import Image from "next/image";
 
-const Page = () => {
+const LoginPage = () => {
   return (
     <div>
       <section className="bg-gray-50 dark:bg-gray-900">
@@ -82,7 +82,7 @@ const Page = () => {
                 <p className="text-sm font-light text-gray-500 dark:text-gray-400">
                   Don’t have an account yet?{' '}
                   <a
-                    href="#"
+                    href="src\app\sign-up\page.js"
                     className="font-medium text-blue-600 hover:underline dark:text-primary-500"
                   >
                     Sign up
@@ -97,4 +97,4 @@ const Page = () => {
   );
 };
 
-export default Page;
+export default LoginPage;
