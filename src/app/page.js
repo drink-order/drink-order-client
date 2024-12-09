@@ -1,5 +1,7 @@
+
 import Image from "next/image";
 import SearchBar from "./components/SearchBar";
+import CategorySelector from "./components/CategorySelector";
 
 export default function Home() {
   return(
@@ -20,7 +22,10 @@ export default function Home() {
       </div>
 
       <div>
-        
+        {/* Add any additional content or components here */}
+        <CategorySelector categories={mockCategories} />
+
+
       </div>
     </div>
   );
