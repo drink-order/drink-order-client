@@ -2,13 +2,14 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
-import { FaBeer, FaShoppingCart, FaBell, FaUser } from "react-icons/fa";
+import {FaShoppingCart, FaBell, FaUser } from "react-icons/fa";
+import { CiCoffeeCup } from "react-icons/ci";
 
 const NavBar = () => {
   const [activeItem, setActiveItem] = useState("Drinks");
 
   const menuItems = [
-    { icon: <FaBeer className="w-5 h-5 mb-2 text-gray2 group-hover:text-blue-600" />, label: "Drinks", link: "/" },
+    { icon: <CiCoffeeCup className="w-7 h-7 mb-2 text-gray2 group-hover:text-blue-600" />, label: "Drinks", link: "/" },
     { icon: <FaShoppingCart className="w-5 h-5 mb-2 text-gray2 group-hover:text-blue-600" />, label: "Order", link: "/order" },
     { icon: <FaBell className="w-5 h-5 mb-2 text-gray2 group-hover:text-blue-600" />, label: "Notification", link: "/notification" },
     { icon: <FaUser className="w-5 h-5 mb-2 text-gray2 group-hover:text-blue-600" />, label: "Account", link: "/account" },

@@ -29,7 +29,7 @@ const CategorySelector = ({ categories = [] }) => {
               <img
                 src={category.image}
                 alt={category.label}
-                className="w-20 h-20 rounded-full mb-2"
+                className="w-20 h-20 mb-2"
               />
             </button>
             <span className="text-sm font-medium mt-2">{category.label}</span>
