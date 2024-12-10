@@ -1,5 +1,7 @@
 import Image from "next/image";
 import SearchBar from "./components/SearchBar";
+import CategorySelector from "./components/CategorySelector";
+import { Button } from "./components/Button";
 
 export default function Home() {
   return (
@@ -14,14 +16,17 @@ export default function Home() {
           className="rounded-full border-solid border-primary border-2"
         />
       </div>
-
+      <button>
+        <CategorySelector />
+      </button>
       <div className="p-4">
+        <>
         <SearchBar />
-      </div>
-
-      <div>
+        <Button />
+        </>
         
       </div>
+
     </div>
   );
 }

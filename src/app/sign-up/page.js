@@ -86,7 +86,9 @@ function SignupForm() {
                   >
                     I accept the{" "}
                     <a
-                      className="font-medium text-blue-600 hover:underline dark:text-blue-500"
+
+
+className="font-medium text-blue-600 hover:underline dark:text-blue-500"
                       href="#"
                     >
                       Terms and Conditions
