@@ -109,7 +109,7 @@ export default function Card({ image, title, soldCount, price, category, onClick
           }
           className="bg-primary text-white px-3 py-1 rounded-full hover:bg-yellow-600"
         >
-          +
+          select
         </button>
       </div>
     </div>
