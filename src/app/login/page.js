@@ -1,7 +1,7 @@
 import React from 'react';
 import Image from "next/image";
 
-const Page = () => {
+const Login = () => {
   return (
     <div>
       <section className="bg-gray-50 dark:bg-gray-900">
@@ -98,4 +98,5 @@ const Page = () => {
     </div>
   );
 };
-export default Page;
+export default Login;
+
