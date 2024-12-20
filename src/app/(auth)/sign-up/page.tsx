@@ -6,6 +6,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import Link from 'next/link';
 import { headers } from 'next/headers';
 import { useRouter } from 'next/navigation';
+import { useToast } from "@/hooks/use-toast"
 
 const FormSchema = z
   .object({
@@ -23,7 +24,8 @@ const FormSchema = z
   });
 
 const SignUpForm = () => {
-  const router = useRouter(),
+  const router = useRouter();
+  const { toast } = useToast()
   const form = useForm<z.infer<typeof FormSchema>>({
     resolver: zodResolver(FormSchema),
     defaultValues: {
@@ -42,7 +44,7 @@ const SignUpForm = () => {
       },
       body: JSON.stringify({
         username: values.username,
-        emails: values.email,
+        email: values.email,
         password: values.password
       })
     })
@@ -50,7 +52,11 @@ const SignUpForm = () => {
     if (response.ok) {
       router.push('/sign-in')
     } else {
-      console.error("Registration failed");
+      toast({
+        title: "Error",
+        description: "Ops something went wrong",
+        variant: "destructive",
+      })
     }
   };
 
@@ -69,7 +75,7 @@ const SignUpForm = () => {
           <input
             id="username"
             type="text"
-            placeholder="johndoe"
+            placeholder="kim thona"
             {...form.register('username')}
             className="mt-1 block w-full p-2 border border-gray-300 rounded-md"
           />
@@ -87,7 +93,7 @@ const SignUpForm = () => {
           <input
             id="email"
             type="email"
-            placeholder="mail@example.com"
+            placeholder="kimthona@gmail.com"
             {...form.register('email')}
             className="mt-1 block w-full p-2 border border-gray-300 rounded-md"
           />
