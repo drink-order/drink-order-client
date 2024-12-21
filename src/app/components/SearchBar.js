@@ -22,18 +22,18 @@ const SearchBar = () => {
     };
 
     return (
-        <form className="w-full md:w-[500px] relative" onSubmit={handleSubmit}>
+        <form className="w-full md:w-[500px] mb-4 px-2 relative" onSubmit={handleSubmit}>
             <label htmlFor="search-bar" className="sr-only">Search</label>
             <div className="relative text-white">
                 <input
                     id="search-bar"
                     type="search"
                     placeholder="Search for drink"
-                    className="w-full p-4 rounded-3xl bg-gray5 text-black"
+                    className="w-full p-3 rounded-3xl bg-gray5 text-black"
                     onChange={(e) => handleSearch(e)}
                 />
                 <button
-                    className="absolute right-1 top-1/2 -translate-y-1/2 p-4 bg-primary rounded-full"
+                    className="absolute right-1 top-1/2 -translate-y-1/2 p-2.5 bg-primary rounded-full"
                     type="submit"
                 >
                     <AiOutlineSearch />
