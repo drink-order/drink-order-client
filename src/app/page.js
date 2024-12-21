@@ -10,24 +10,10 @@ export default function Home() {
   const [cart, setCart] = useState([]);
   const [total, setTotal] = useState(0);
 
-  // Function to add a drink to the cart
-  const handleAddToCart = (drink, quantity = 1) => {
-    const existingDrinkIndex = cart.findIndex((item) => item.id === drink.id);
-    if (existingDrinkIndex !== -1) {
-      const updatedCart = [...cart];
-      updatedCart[existingDrinkIndex].quantity += quantity;
-      setCart(updatedCart);
-    } else {
-      setCart([...cart, { ...drink, quantity }]);
-    }
-    setTotal((prevTotal) => prevTotal + drink.price * quantity);
-  };
 
-  // Function to remove a drink from the cart
-  const handleRemoveFromCart = (drink) => {
-    const updatedCart = cart.filter((item) => item.id !== drink.id);
-    setCart(updatedCart);
-    setTotal((prevTotal) => prevTotal - drink.price * drink.quantity);
+  const addToCart = (product) => {
+    setCart([...cart, product]);
+    setTotal(total + product.price);
   };
 
   return (
@@ -46,16 +32,14 @@ export default function Home() {
       <div className="mt-6 px-6">
         <CategorySelector
           categories={mockCategories}
-          onAddToCart={handleAddToCart}
+          addToCart={addToCart}
         />
       </div>
 
-      {/* Sticky Cart Button */}
-      <StickyCartButton
-        cart={cart}
-        total={total}
-        onRemoveFromCart={handleRemoveFromCart}
-      />
+      <div>
+        <StickyCartButton cart={cart} total={total} />
+      </div>
+
     </div>
   );
 }
