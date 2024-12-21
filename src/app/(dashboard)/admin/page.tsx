@@ -1,6 +1,7 @@
 import { getServerSession } from "next-auth";
 import { authOptions } from "../../lib/auth";
 import Signout from "../../components/Signout";
+import Dashboard from "../../components/Staff-Dashboard/Dashboard";
 
 const Page = async () => {
   const session = await getServerSession(authOptions);
@@ -9,11 +10,11 @@ const Page = async () => {
     return (
       <div>
         <h2>Admin page - welcome back {session.user.username}</h2>
+        {/* <Dashboard /> */}
         <Signout />
       </div>
     );
   }
-
   return <h2>Please login to see this admin page</h2>; 
 };
 
