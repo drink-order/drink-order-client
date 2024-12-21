@@ -1,6 +1,5 @@
 "use client";
 
-
 import React, { useState, useEffect, useRef } from 'react';
 import { FaShoppingCart } from 'react-icons/fa';
 
@@ -127,7 +126,3 @@ const StickyCartButton = () => {
 };
 
 export default StickyCartButton;
-
-
-
-
