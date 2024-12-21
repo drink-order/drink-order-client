@@ -3,42 +3,32 @@
 import React, { useState } from "react";
 import SearchBar from "./components/SearchBar";
 import CategorySelector from "./components/CategorySelector";
-import { mockCategories } from "./lib/mockData/mockCategories";
+import StickyCartButton from "./components/StickyCartButton";
+import { mockCategories } from "./lib/mockData/mockCategories"; // Import data from mockCategories.js from lib folder
 
 export default function Home() {
-  // const [cartItems, setCartItems] = useState([]); // Cart items state
-  // const [totalPrice, setTotalPrice] = useState(0); // Total price state
-  // const [selectedDrink, setSelectedDrink] = useState(null); // State for the selected drink
+  const [cart, setCart] = useState([]);
+  const [total, setTotal] = useState(0);
 
-  // // Function to add an item to the cart
-  // const addToCart = (item) => {
-  //   setCartItems((prev) => [...prev, item]);
-  //   setTotalPrice((prev) => prev + item.price);
-  // };
-
-  // // Function to remove an item from the cart
-  // const removeFromCart = (item) => {
-  //   setCartItems((prev) => {
-  //     const index = prev.findIndex((cartItem) => cartItem.title === item.title);
-  //     if (index !== -1) {
-  //       const updatedCart = [...prev];
-  //       updatedCart.splice(index, 1);
-  //       return updatedCart;
-  //     }
-  //     return prev;
-  //   });
-  //   setTotalPrice((prev) => prev - item.price);
-  // };
-
-  // Function to handle selecting a drink
-  const handleSelectDrink = (drink) => {
-    setSelectedDrink(drink);
+  // Function to add a drink to the cart
+  const handleAddToCart = (drink, quantity = 1) => {
+    const existingDrinkIndex = cart.findIndex((item) => item.id === drink.id);
+    if (existingDrinkIndex !== -1) {
+      const updatedCart = [...cart];
+      updatedCart[existingDrinkIndex].quantity += quantity;
+      setCart(updatedCart);
+    } else {
+      setCart([...cart, { ...drink, quantity }]);
+    }
+    setTotal((prevTotal) => prevTotal + drink.price * quantity);
   };
 
-  // // Function to close the StickyCardComponent
-  // const handleCloseStickyCard = () => {
-  //   setSelectedDrink(null);
-  // };
+  // Function to remove a drink from the cart
+  const handleRemoveFromCart = (drink) => {
+    const updatedCart = cart.filter((item) => item.id !== drink.id);
+    setCart(updatedCart);
+    setTotal((prevTotal) => prevTotal - drink.price * drink.quantity);
+  };
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-100">
@@ -56,25 +46,16 @@ export default function Home() {
       <div className="mt-6 px-6">
         <CategorySelector
           categories={mockCategories}
-          onSelect={handleSelectDrink}
-          // className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-4"
+          onAddToCart={handleAddToCart}
         />
       </div>
 
-      {/* Sticky Card Component
-      {selectedDrink && (
-        <div className="fixed inset-0 z-50 bg-black bg-opacity-50 flex items-center justify-center p-4">
-          <StickyCardComponent
-            drink={selectedDrink}
-            cartItems={cartItems}
-            totalPrice={totalPrice}
-            onAddToCart={addToCart}
-            onRemoveFromCart={removeFromCart}
-            onClose={handleCloseStickyCard}
-            className="max-w-md w-full bg-white rounded-lg shadow-lg"
-          /> */}
-        {/* </div> */}
-      {/* )} */}
+      {/* Sticky Cart Button */}
+      <StickyCartButton
+        cart={cart}
+        total={total}
+        onRemoveFromCart={handleRemoveFromCart}
+      />
     </div>
   );
 }
