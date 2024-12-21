@@ -7,7 +7,7 @@ import { GiSandsOfTime } from "react-icons/gi";
 import ConfirmOrderPage from './ConfirmOrderPage';
 import PendingPage from './PendingPage';
 import CompleteOrderPage from './CompleteOrderPage';
-import Profile from './Profile';
+// import Profile from './Profile';
 
 
 export default function Dashboard() {
@@ -109,7 +109,7 @@ export default function Dashboard() {
             />
           )}
           {activePage === "completeOrder" && (<CompleteOrderPage orders={orders.completed} />)}
-          {activePage === 'profile' && <Profile />}
+          {/* {activePage === 'profile' && <Profile />} */}
       </div>
     </div>
   );
