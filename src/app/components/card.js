@@ -14,7 +14,12 @@ export default function Card({ image, title, soldCount, price, category, addToCa
   const handleCloseDrawer = () => {
     setShowDrawer(false);
     setSelectedDrink(null);
-  };;
+  };
+
+  // addToCart = (product) => {
+  //   setCart([...cart, product]);
+  //   setTotal(total + product.price);
+  // };
 
   return (
     <div className="max-w-xs w-full h-auto border border-secondary rounded-lg shadow-md p-2">

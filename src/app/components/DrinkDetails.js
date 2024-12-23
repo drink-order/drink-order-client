@@ -2,15 +2,17 @@
 
 import React, { useState } from "react";
 import DrinkOption from "./DrinkOption";
+import StickyCartButton from "./StickyCartButton";
 import CounterInput from "./CounterInput";
 import Button from "./Button";
 
 const DrinkDetails = ({ drink, addToCart, onBack }) => {
     const [quantity, setQuantity] = useState(1);
+    const [showStickyCart, setShowStickyCart] = useState(false);
     
     const handleAddToCart = () => {
       addToCart({ ...drink, quantity });
-      onBack();
+      setShowStickyCart(true);
     };
 
   return (
@@ -42,6 +44,10 @@ const DrinkDetails = ({ drink, addToCart, onBack }) => {
           Add to Cart
         </Button>
       </div>
+
+      {showStickyCart && (
+        <StickyCartButton product={drink} addToCart={addToCart} />
+      )}
     </div>
   );
 };
