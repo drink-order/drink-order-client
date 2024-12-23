@@ -2,9 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 
-const StickyCartButton = ({ product, addToCart }) => {
-  const [cart, setCart] = useState([]);
-  const [total, setTotal] = useState(0);
+const StickyCartButton = ({ cart, total, setCart, setTotal }) => {
   const [showCartModal, setShowCartModal] = useState(false);
   const cartModalRef = useRef(null);
 

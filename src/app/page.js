@@ -9,15 +9,18 @@ import { mockCategories } from "./lib/mockData/mockCategories"; // Import data f
 export default function Home() {
   const [cart, setCart] = useState([]);
   const [total, setTotal] = useState(0);
+  const [showStickyCart, setShowStickyCart] = useState(false);
 
 
   const addToCart = (product) => {
     setCart([...cart, product]);
     setTotal(total + product.price);
+    setShowStickyCart(true);
   };
 
+
   return (
-    <div className="min-h-screen flex flex-col bg-gray-100">
+    <div className="min-h-screen flex flex-col bg-white">
       {/* Header */}
       <div className="text-left text-2xl font-bold mt-4 mb-6 px-6">
         Hello, Customer
@@ -36,9 +39,9 @@ export default function Home() {
         />
       </div>
 
-      <div>
+      {showStickyCart && (
         <StickyCartButton cart={cart} total={total} />
-      </div>
+      )}
 
     </div>
   );
