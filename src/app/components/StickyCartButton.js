@@ -1,28 +1,26 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from 'react';
-import { FaShoppingCart } from 'react-icons/fa';
 
-const StickyCartButton = () => {
+const StickyCartButton = ({ product, addToCart }) => {
   const [cart, setCart] = useState([]);
   const [total, setTotal] = useState(0);
   const [showCartModal, setShowCartModal] = useState(false);
   const cartModalRef = useRef(null);
 
-  const products = [
-    { id: 1, name: 'Chicken Rice', price: 4.5 },
-    { id: 2, name: 'Pork Rice', price: 4.8 },
-  ];
-
-  const addToCart = (item) => {
-    setCart([...cart, item]);
-    setTotal((prevTotal) => prevTotal + item.price);
-  };
-
   const removeFromCart = (item) => {
-    setCart(cart.filter((i) => i.id !== item.id));
-    setTotal((prevTotal) => prevTotal - item.price);
+    const updatedCart = cart.filter((i) => i.id !== item.id);
+    setCart(updatedCart);
+    setTotal(total - item.price);
   };
+
+  useEffect(() => {
+    if (product) {
+      addToCart(product);
+      setCart([...cart, product]);
+      setTotal(total + product.price);
+    }
+  }, [product]);
 
   const toggleCartModal = () => {
     setShowCartModal(!showCartModal);
@@ -41,25 +39,11 @@ const StickyCartButton = () => {
     };
   }, []);
 
+
   return (
     <div>
-      <div className="grid grid-cols-2 gap-4">
-        {products.map((product) => (
-          <div key={product.id} className="bg-white shadow-md rounded-lg p-4">
-            <h3 className="text-lg font-bold">{product.name}</h3>
-            <p className="text-gray-500">Price: ${product.price.toFixed(2)}</p>
-            <button
-              onClick={() => addToCart(product)}
-              className="bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-2 px-4 rounded"
-            >
-              Add to Cart
-            </button>
-          </div>
-        ))}
-      </div>
-
       {cart.length > 0 && (
-        <div className="fixed bottom-16 left-0 right-0 z-50 bg-yellow-600 text-white flex justify-between items-center px-6 py-4 shadow-lg h-20">
+        <div className="fixed bottom-16 left-0 right-0 z-50 bg-yellow-600 text-white flex justify-between items-center px-6 py-4 shadow-lg h-14">
           <div className="flex items-center">
             <span className="bg-white text-yellow-600 font-bold px-4 py-2 rounded-full text-lg mr-4">
               {cart.length}
@@ -72,52 +56,37 @@ const StickyCartButton = () => {
             <span className="text-xl font-bold mr-6">${total.toFixed(2)}</span>
             <button
               onClick={toggleCartModal}
-              className="bg-yellow-800 hover:bg-yellow-900 px-6 py-3 rounded-lg text-lg"
+              className="bg-white text-yellow-600 px-4 py-2 rounded-full hover:bg-yellow-700"
             >
-              Go to Cart
+              Checkout
             </button>
           </div>
         </div>
       )}
 
       {showCartModal && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center">
-          <div
-            ref={cartModalRef}
-            className="bg-white w-full rounded-t-lg shadow-lg animate-slide-up"
-          >
-            <div className="px-6 py-4 border-b">
-              <h2 className="text-2xl font-bold">Your Cart</h2>
-            </div>
-            <div className="px-6 py-4 overflow-y-auto max-h-[70vh]">
-              {cart.length > 0 ? (
-                cart.map((item) => (
-                  <div
-                    key={item.id}
-                    className="flex justify-between items-center mb-4"
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
+          <div ref={cartModalRef} className="bg-white w-full max-w-lg p-4 rounded-lg">
+            <h2 className="text-xl font-bold mb-4">Your Cart</h2>
+            <ul>
+              {cart.map((item, index) => (
+                <li key={item.id || index} className="flex justify-between items-center mb-2">
+                  <span>{item.title}</span>
+                  <button
+                    onClick={() => removeFromCart(item)}
+                    className="text-red-500 hover:text-red-700"
                   >
-                    <div>
-                      <h3 className="text-lg font-bold">{item.name}</h3>
-                      <p className="text-gray-500">Price: ${item.price.toFixed(2)}</p>
-                    </div>
-                    <button
-                      onClick={() => removeFromCart(item)}
-                      className="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded"
-                    >
-                      Remove
-                    </button>
-                  </div>
-                ))
-              ) : (
-                <p>Your cart is empty.</p>
-              )}
-            </div>
-            <div className="px-6 py-4 border-t flex justify-between items-center">
-              <span className="text-xl font-bold">Total: ${total.toFixed(2)}</span>
-              <button className="bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-2 px-4 rounded">
-                Checkout
-              </button>
-            </div>
+                    Remove
+                  </button>
+                </li>
+              ))}
+            </ul>
+            <button
+              onClick={toggleCartModal}
+              className="mt-4 bg-yellow-600 text-white px-4 py-2 rounded-full hover:bg-yellow-700"
+            >
+              Close
+            </button>
           </div>
         </div>
       )}

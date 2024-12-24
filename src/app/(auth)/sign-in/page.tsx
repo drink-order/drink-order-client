@@ -101,7 +101,7 @@ const SignInForm = () => {
               <GoogleSignInButton />
 
               <p className="text-sm font-light text-gray-500 dark:text-gray-400">
-                Don’t have an account yet?{' '}
+                Don&apos;t have an account yet?{' '}
                 <a href="/sign-up" className="font-medium text-blue-600 hover:underline dark:text-primary-500">
                   Sign up
                 </a>
