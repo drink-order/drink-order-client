@@ -1,54 +1,74 @@
-import React from "react";  
-import CardBox from ".././components/CardBox";
+import React from "react";
 
-export default function SummaryCard() {
-    return (
-      <div className="min-h-screen w-full flex items-center justify-center">
-        {/* Main Card */}
-        <main className="max-w-[320px] rounded-xl overflow-hidden bg-white shadow-lg">
-            <section className="flex flex-col items-center text-center px-5 pt-10 pb-8 gap-7">
-                {/* Heading and Description */}
-                <div className="flex flex-col gap-3">
-                <h2 className="text-3xl font-bold text-slate-800">Order Summary</h2>
-                <p className="text-gray-500 text-sm">
-                    You can now listen to millions of songs, audiobooks, and podcasts
-                    on any device anywhere you like!
-                </p>
-                </div>
-    
-                {/* Plan Details */}
-                {/* <section className="flex bg-blue-50 justify-between w-full items-center rounded-xl px-5 py-3 text-sm">
-                <div className="flex gap-2">
-                    <div className="flex flex-col">
-                    <h3 className="font-bold">Annual Plan</h3>
-                    <p className="text-gray-500 text-sm">$59.99/year</p>
-                    </div>
-                </div>
-                <button className="text-blue-800 font-semibold underline hover:opacity-80 hover:no-underline">
-                    Change
-                </button>
-                </section> */}
-                <CardBox 
-                    name={"Ice Chocolate"}
-                    description={"A delicious ice chocolate drink"}
-                    price={4.99}
-                    originalPrice={6.99}
-                    image="\drink.png"
-                    
-                />
-    
-                {/* Buttons */}
-                <div className="flex flex-col gap-3 w-full">
-                <button className="bg-blue-700 font-semibold text-white w-full py-3 text-sm rounded-xl shadow-2xl hover:opacity-80">
-                    Proceed to Payment
-                </button>
-                <button className="text-sm font-bold text-gray-600 hover:text-black">
-                    Cancel Order
-                </button>
-                </div>
-            </section>
-        </main>
+const OrderSummary = () => {
+  // Define the list of products and their details
+  const products = [
+    {
+      name: "Brown Crystal Milk Tea",
+      sweetness: "Normal Sweet",
+      size: "L",
+      quantity: 1,
+      price: 1.82,
+      image: "/drink.png", // Replace with your image path
+    },
+    {
+      name: "Brown Crystal Milk Tea",
+      sweetness: "Normal Sweet",
+      size: "L",
+      quantity: 1,
+      price: 1.82,
+      image: "/drink.png", // Replace with your image path
+    },
+    {
+      name: "Brown Crystal Milk Tea",
+      sweetness: "Normal Sweet",
+      size: "L",
+      quantity: 1,
+      price: 1.82,
+      image: "/drink.png", // Replace with your image path
+    },
+  ];
+
+  // Calculate total price
+  const totalPrice = products.reduce(
+    (total, product) => total + product.price * product.quantity,
+    0
+  );
+
+  return (
+    <div className="p-4 bg-white rounded-md shadow-md max-w-md mx-auto">
+      {/* Product List */}
+      {products.map((product, index) => (
+        <div
+          key={index}
+          className="flex items-center justify-between mb-2"
+        >
+          <img
+            src={product.image}
+            alt={product.name}
+            className="w-12 h-12 rounded-md mr-4"
+          />
+          <div>
+            <h3 className="font-medium text-lg">{product.name}</h3>
+            <p className="text-sm text-gray-500">{product.sweetness}</p>
+            <p className="text-sm text-gray-500">{product.size}</p>
+            <p className="text-sm text-gray-500">x{product.quantity}</p>
+          </div>
+          <div className="text-right">
+            <p className="text-lg font-bold text-gray-800">
+              ${product.price.toFixed(2)}
+            </p>
+          </div>
+        </div>
+      ))}
+
+      {/* Total Section */}
+      <div className="flex justify-between items-center font-bold text-lg border-t border-gray-200 pt-4">
+        <p>Total</p>
+        <p>${totalPrice.toFixed(2)}</p>
       </div>
-    );
-}
-  
+    </div>
+  );
+};
+
+export default OrderSummary;
