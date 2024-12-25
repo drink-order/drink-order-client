@@ -1,17 +1,20 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import Image from "next/image";
 import SearchBar from "./components/SearchBar";
 import CategorySelector from "./components/CategorySelector";
-import { Button } from "./components/Button";
+import StickyCartButton from "./components/StickyCartButton";
 
 export default function Home() {
-  const [cart, setCart] = useState([]);
-  const [total, setTotal] = useState(0);
+  const [categories, setCategories] = useState([]);
 
-
-  const addToCart = (product) => {
-    setCart([...cart, product]);
-    setTotal(total + product.price);
-  };
+  useEffect(() => {
+    fetch("/api/data")
+      .then(response => response.json())
+      .then(data => setCategories(data))
+      .catch(error => console.error("Error fetching categories:", error));
+  }, []);
 
   return (
     <div className="min-h-screen bg-gray-100 flex flex-col">
@@ -20,8 +23,8 @@ export default function Home() {
         <Image
           src="/drink.png"
           alt="Profile"
-          width={48} // Adjusted size for better visibility
-          height={48} // Adjusted size for better visibility
+          width={48}
+          height={48}
           className="rounded-full border-solid border-primary border-2"
         />
       </div>
@@ -33,16 +36,8 @@ export default function Home() {
 
       {/* Category Selector */}
       <div className="mt-6 px-6">
-        <CategorySelector
-          categories={mockCategories}
-          addToCart={addToCart}
-        />
+        <CategorySelector categories={categories} />
       </div>
-
-      <div>
-        <StickyCartButton cart={cart} total={total} />
-      </div>
-
     </div>
   );
 }
