@@ -3,6 +3,7 @@ import "./globals.css";
 import NavBar from "./components/NavBar";
 import { Toaster } from "@/components/ui/toaster"
 import Provider from "./Provider";
+import NavBarWrapper from "./components/NavBarWrapper";
 
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
@@ -27,10 +28,8 @@ export default function RootLayout({ children }) {
         className={`${geistSans.variable} ${geistMono.variable} antialiased pd-16`}
       >
         <Provider>
-        <div className="mb-20">
-            {children}
-          </div>
-          <NavBar />
+          {children}
+          <NavBarWrapper />
           <Toaster />
         </Provider>
       </body>

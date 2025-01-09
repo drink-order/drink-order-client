@@ -1,6 +1,6 @@
 import { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
-import { db } from "./db";
+import { db } from "./db"; // Assuming you have a Prisma client instance configured
 import { PrismaAdapter } from "@next-auth/prisma-adapter";
 import { compare } from "bcrypt";
 
@@ -8,67 +8,82 @@ export const authOptions: NextAuthOptions = {
     adapter: PrismaAdapter(db),
     secret: process.env.NEXTAUTH_SECRET,
     session: {
-        strategy: "jwt",
+        strategy: "jwt", // Use JSON Web Tokens for session strategy
     },
     pages: {
-        signIn: "/sign-in",
+        signIn: "/sign-in", // Redirect here if not authenticated
     },
-
     providers: [
         CredentialsProvider({
             name: "Credentials",
             credentials: {
-                email: { label: "Email", type: "email", placeholder: "jsmith@gmail.com" },
-                password: { label: "Password", type: "password" }
+                identifier: { label: "Email or Phone", type: "text", placeholder: "jsmith@gmail.com or 012345678" },
+                password: { label: "Password", type: "password" },
             },
             async authorize(credentials) {
-                if (!credentials?.email || !credentials?.password) {
+                if (!credentials?.identifier || !credentials?.password) {
                     return null;
                 }
-                
-                const existingUser = await db.user.findUnique({ 
-                    where: { email: credentials?.email } 
+
+                const isEmail = /\S+@\S+\.\S+/.test(credentials.identifier);
+
+                const existingUser = await db.user.findUnique({
+                    where: isEmail
+                        ? { email: credentials.identifier }
+                        : { phone: credentials.identifier },
                 });
 
                 if (!existingUser) {
-                    return null;
+                    return null; // User not found
                 }
 
                 const passwordMatch = await compare(credentials.password, existingUser.password);
-                
+
                 if (!passwordMatch) {
-                    return null;
+                    return null; // Incorrect password
                 }
 
-                return { 
-                    id: `${existingUser.id}`, 
-                    username: existingUser.username,
-                    email: existingUser.email 
+                // Ensure the return object matches the `User` interface
+                return {
+                    id: existingUser.id,         // Number
+                    username: existingUser.username || undefined, // Optional string
+                    email: existingUser.email || undefined, // Optional string
+                    phone: existingUser.phone || undefined, // Optional string
+                    role: existingUser.role,     // String
                 };
-            }
-        })
+            },
+        }),
     ],
     callbacks: {
+        // Include user data in the JWT token
         async jwt({ token, user }) {
-            // console.log(token, user);
             if (user) {
+                // Ensure all relevant fields are included in the token
                 return {
                     ...token,
+                    id: user.id,
                     username: user.username,
-                }
+                    email: user.email,
+                    phone: user.phone,
+                    role: user.role,
+                };
             }
-            return token
+            return token;
         },
+
+        // Include user data in the session object
         async session({ session, token }) {
-            // console.log(token, user);
-            return{
-                ...session,
-                user: {
-                    ...session.user,
-                    username: token.username
-                }
-            }
-            return session
+            // Explicitly type the token as JWT
+            const typedToken = token as { id: number, username?: string, email?: string, phone?: string, role: string };
+
+            session.user = {
+                id: typedToken.id,
+                username: typedToken.username,
+                email: typedToken.email,
+                phone: typedToken.phone,
+                role: typedToken.role,
+            };
+            return session;
         },
-    }
+    },
 };
