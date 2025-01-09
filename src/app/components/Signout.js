@@ -1,16 +1,31 @@
 "use client";
-import { signOut } from 'next-auth/react';
-import { redirect } from 'next/dist/server/api-utils';
 
-const Signout = () => {
+import { useState } from 'react';
+import { useRouter } from 'next/navigation'; // Importing Next.js useRouter hook for redirect
+import { signOut } from 'next-auth/react'; // Import NextAuth's signOut function
+
+export default function SignOutButton() {
+  const [loading, setLoading] = useState(false);
+  const router = useRouter(); // Using the useRouter hook to manage the route
+
+  const handleSignOut = async () => {
+    setLoading(true);
+    try {
+      // Use NextAuth's signOut function without redirecting right away
+      await signOut({ redirect: false }); // Do not automatically redirect here
+      console.log('Successfully signed out');
+      // // Manually redirect to /sign-in
+      router.push('/sign-in');
+    } catch (error) {
+      console.error('Error during sign-out', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
-    <button className="bg-red-500 text-white rounded-md px-6 py-2 shadow-md " onClick={() => signOut({
-        redirect: true,
-        callbackUrl: `${window.location.origin}/sign-in`
-    }) }>
-        Sign Out
+    <button onClick={handleSignOut} disabled={loading}>
+      {loading ? 'Signing out...' : 'Sign out'}
     </button>
-  )
+  );
 }
-
-export default Signout

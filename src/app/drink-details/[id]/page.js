@@ -3,6 +3,7 @@
 import { useRouter, useParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import DrinkDetails from '../../components/DrinkDetails'; // Adjusted path
+import Loading from '../../components/Loading';
 
 const DrinkDetailsPage = () => {
   const router = useRouter();
@@ -33,7 +34,7 @@ const DrinkDetailsPage = () => {
   }, [id]);
 
   if (loading) {
-    return <div>Loading...</div>; // Display loading indicator
+    return <Loading />; // Display loading indicator
   }
 
   if (!drinkDetails) {
