@@ -9,7 +9,7 @@ declare module "next-auth" {
         id: number; // Prisma's `id` is an Int, so use `number` here
         email?: string; // Email is optional
         phone?: string; // Phone is optional
-        username?: string; // Username is optional
+        username?: string;null // Username is optional
         role: string; // Role has a default value, so it's required
     }
 

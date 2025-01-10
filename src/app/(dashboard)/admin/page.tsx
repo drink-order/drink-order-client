@@ -8,7 +8,7 @@ const Page = async () => {
   if (session?.user) {
     return (
       <div>
-        <h2>Admin page - welcome back {session.user.username}</h2>
+        <h2>Admin page - welcome back {session.user.username || session.user.username}</h2>
         {/* <Dashboard /> */}
         <SignOutButton />
       </div>
