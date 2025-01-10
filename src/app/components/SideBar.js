@@ -155,7 +155,7 @@ export default function Sidebar() {
           <ul className="space-y-2 p-4">
             <li>
               <Link
-                href="/confirm" // Use Next.js Link with href
+                href="/staff" // Use Next.js Link with href
                 className={`w-full flex items-center px-3 py-2 rounded-md ${
                   activeButton === "confirm" ? "bg-yellow-400 text-white" : "text-gray-700 hover:text-white hover:bg-yellow-400"
                 }`}
@@ -169,7 +169,7 @@ export default function Sidebar() {
             </li>
             <li>
               <Link
-                href="/pending" // Use Next.js Link with href
+                href="/staff/pending" // Use Next.js Link with href
                 className={`w-full flex items-center px-3 py-2 rounded-md ${
                   activeButton === "pending" ? "bg-yellow-400 text-white" : "text-gray-700 hover:text-white hover:bg-yellow-400"
                 }`}
@@ -183,7 +183,7 @@ export default function Sidebar() {
             </li>
             <li>
               <Link
-                href="/complete" // Use Next.js Link with href
+                href="/staff/complete" // Use Next.js Link with href
                 className={`w-full flex items-center px-3 py-2 rounded-md ${
                   activeButton === "completed" ? "bg-yellow-400 text-white" : "text-gray-700 hover:text-white hover:bg-yellow-400"
                 }`}
@@ -198,7 +198,7 @@ export default function Sidebar() {
           </ul>
         </div>
         <Link
-          href="/profile" // Use Next.js Link with href
+          href="/staff/profile" // Use Next.js Link with href
           className={`p-4 flex items-center space-x-3 w-full text-left ${
             activeButton === "profile" ? "bg-yellow-400 text-white" : "text-gray-700 hover:text-white hover:bg-yellow-400"
           }`}
