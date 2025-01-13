@@ -14,16 +14,27 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// model User {
-//   id        Int      @id @default(autoincrement())
-//   email     String?  @unique
-//   phone     String?  @unique
-//   username  String?  @unique
-//   password  String?
-//   role      String   @default("user")
-//   createdAt DateTime @default(now())
-//   updatedAt DateTime @updatedAt
-//}
+// User Model
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  username      String?   @unique
+  email         String?   @unique
+  phone         String?   @unique
+  password      String?
+  role          String    @default("user")
+  emailVerified DateTime? @map("email_verified")
+  image         String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  accounts      Account[]
+  sessions      Session[]
+
+  @@map("users")
+}
+
+// Account Model
 model Account {
   id                 String  @id @default(cuid())
   userId             String  @map("user_id")
@@ -37,47 +48,31 @@ model Account {
   scope              String?
   id_token           String? @db.Text
   session_state      String?
- 
+
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
- 
+
   @@unique([provider, providerAccountId])
   @@map("accounts")
 }
- 
+
+// Session Model
 model Session {
   id           String   @id @default(cuid())
   sessionToken String   @unique @map("session_token")
   userId       String   @map("user_id")
   expires      DateTime
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
- 
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   @@map("sessions")
 }
- 
-model User {
-  id            String    @id @default(cuid())
-   
- phone     String?  @unique
- username  String?  @unique
- password  String?
- role      String   @default("user")
- createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  name          String?
-  email         String?   @unique
-  emailVerified DateTime? @map("email_verified")
-  image         String?
-  accounts      Account[]
-  sessions      Session[]
- 
-  @@map("users")
-}
- 
+
+// VerificationToken Model
 model VerificationToken {
   identifier String
   token      String
   expires    DateTime
- 
+
   @@unique([identifier, token])
   @@map("verification_tokens")
 }
