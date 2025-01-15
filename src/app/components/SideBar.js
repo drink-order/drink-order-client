@@ -164,7 +164,7 @@ export default function Sidebar() {
                 <span className="mr-2">
                   <PiNotificationBold />
                 </span>
-                Confirm Order
+                New Order
               </Link>
             </li>
             <li>
@@ -178,7 +178,7 @@ export default function Sidebar() {
                 <span className="mr-2">
                   <GiSandsOfTime />
                 </span>
-                Pending
+                Ready for Pickup
               </Link>
             </li>
             <li>
@@ -192,7 +192,7 @@ export default function Sidebar() {
                 <span className="mr-2">
                   <FaClipboardCheck />
                 </span>
-                Complete Order
+                Completed
               </Link>
             </li>
           </ul>
