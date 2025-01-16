@@ -18,12 +18,12 @@
   --gray5: #EDEDED;
 }
 
-@media (prefers-color-scheme: dark) {
+/* @media (prefers-color-scheme: dark) {
   :root {
     --background: #000000;
     --foreground: #ffffff;
   }
-}
+} */
 
 body {
   color: var(--foreground);
