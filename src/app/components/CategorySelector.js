@@ -1,9 +1,9 @@
-
 "use client";
+
 import React, { useState } from "react";
 import Card from "./card";
 
-const CategorySelector = ({ categories = [], addToCart }) => {
+const CategorySelector = ({ categories}) => {
   const [activeCategory, setActiveCategory] = useState(0); // Default active category is the first
 
   const handleCategoryClick = (categoryIndex) => {
@@ -50,12 +50,12 @@ const CategorySelector = ({ categories = [], addToCart }) => {
           {categories[activeCategory]?.content?.map((product, index) => (
             <Card
               key={index}
+              id={product.id}
               image={product.image}
               title={product.title}
               soldCount={product.soldCount}
               price={product.price}
               category={product.category}
-              addToCart={addToCart}
             />
           )) || (
             <div className="text-gray-500">No content available</div>

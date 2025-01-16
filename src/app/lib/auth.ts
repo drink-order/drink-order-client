@@ -1,74 +1,132 @@
-import { NextAuthOptions } from "next-auth";
+import { NextAuthOptions, Session } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
-import { db } from "./db";
+import GoogleProvider from "next-auth/providers/google";
+import { db } from "./db"; // Prisma client instance
 import { PrismaAdapter } from "@next-auth/prisma-adapter";
 import { compare } from "bcrypt";
 
+type UserRole = "admin" | "shopOwner" | "staff" | "user";
+
+interface CustomSession extends Session {
+    user: {
+        id: string;
+        username?: string;
+        name?: string;
+        email?: string;
+        phone?: string;
+        role: UserRole;
+    };
+}
+
 export const authOptions: NextAuthOptions = {
     adapter: PrismaAdapter(db),
-    secret: process.env.NEXTAUTH_SECRET,
+    secret: process.env.NEXTAUTH_SECRET || "default_secret", // Fallback for development
     session: {
-        strategy: "jwt",
+        strategy: "jwt", // Use JSON Web Tokens for session strategy
     },
     pages: {
-        signIn: "/sign-in",
+        signIn: "/sign-in", // Redirect here if not authenticated
     },
-
     providers: [
+        GoogleProvider({
+            clientId: process.env.GOOGLE_CLIENT_ID!,
+            clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+            authorization: {
+                params: {
+                    scope: "openid profile email",
+                },
+            },
+        }),
         CredentialsProvider({
             name: "Credentials",
             credentials: {
-                email: { label: "Email", type: "email", placeholder: "jsmith@gmail.com" },
-                password: { label: "Password", type: "password" }
+                identifier: { label: "Email or Phone", type: "text", placeholder: "jsmith@gmail.com or 012345678" },
+                password: { label: "Password", type: "password" },
             },
             async authorize(credentials) {
-                if (!credentials?.email || !credentials?.password) {
+                try {
+                    if (!credentials?.identifier || !credentials?.password) {
+                        throw new Error("Missing identifier or password");
+                    }
+
+                    const isEmail = /\S+@\S+\.\S+/.test(credentials.identifier);
+
+                    const existingUser = await db.user.findUnique({
+                        where: isEmail
+                            ? { email: credentials.identifier }
+                            : { phone: credentials.identifier },
+                    });
+
+                    if (!existingUser) {
+                        throw new Error("User not found");
+                    }
+
+                    if (existingUser.password) {
+                        const passwordMatch = await compare(credentials.password, existingUser.password);
+                        if (!passwordMatch) {
+                            throw new Error("Invalid password");
+                        }
+                    }
+
+                    const validRoles: UserRole[] = ["admin", "shopOwner", "staff", "user"];
+                    const role: UserRole = validRoles.includes(existingUser.role as UserRole)
+                        ? (existingUser.role as UserRole)
+                        : "user"; // Default to 'user'
+
+                    return {
+                        id: existingUser.id,
+                        username: existingUser.username || undefined,
+                        name: existingUser.name || undefined,
+                        email: existingUser.email || undefined,
+                        phone: existingUser.phone || undefined,
+                        role,
+                    };
+                } catch (error) {
+                    console.error("Authorization error:", error.message);
                     return null;
                 }
-                
-                const existingUser = await db.user.findUnique({ 
-                    where: { email: credentials?.email } 
-                });
-
-                if (!existingUser) {
-                    return null;
-                }
-
-                const passwordMatch = await compare(credentials.password, existingUser.password);
-                
-                if (!passwordMatch) {
-                    return null;
-                }
-
-                return { 
-                    id: `${existingUser.id}`, 
-                    username: existingUser.username,
-                    email: existingUser.email 
-                };
-            }
-        })
+            },
+        }),
     ],
     callbacks: {
         async jwt({ token, user }) {
-            // console.log(token, user);
             if (user) {
                 return {
                     ...token,
+                    id: user.id,
                     username: user.username,
-                }
+                    name: user.name,
+                    email: user.email,
+                    phone: user.phone,
+                    role: user.role,
+                };
             }
-            return token
+            return token;
         },
+
         async session({ session, token }) {
-            // console.log(token, user);
-            return{
+            const typedToken = token as {
+                id: string;
+                username?: string;
+                name?: string;
+                email?: string;
+                phone?: string;
+                role: UserRole;
+            };
+
+            const customSession: CustomSession = {
                 ...session,
                 user: {
-                    ...session.user,
-                    username: token.username
-                }
-            }
-            return session
+                    id: typedToken.id,
+                    username: typedToken.username,
+                    name: typedToken.name,
+                    email: typedToken.email,
+                    phone: typedToken.phone,
+                    role: typedToken.role,
+                },
+            };
+
+            return customSession;
         },
-    }
+    },
 };

@@ -1,25 +1,12 @@
 import React from 'react';
-import DrinkDetails from './DrinkDetails';
-import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 
-export default function Card({ image, title, soldCount, price, category, addToCart }) {
-  const [showDrawer, setShowDrawer] = useState(false);
-  const [selectedDrink, setSelectedDrink] = useState(null);
+export default function Card({ id, image, title, soldCount, price, category }) {
+  const router = useRouter();
 
-  const handleSelect = (drink) => {
-    setSelectedDrink(drink);
-    setShowDrawer(true);
+  const handleSelect = () => {
+    router.push(`/drink-details/${id}`);
   };
-
-  const handleCloseDrawer = () => {
-    setShowDrawer(false);
-    setSelectedDrink(null);
-  };
-
-  // addToCart = (product) => {
-  //   setCart([...cart, product]);
-  //   setTotal(total + product.price);
-  // };
 
   return (
     <div className="max-w-xs w-full h-auto border border-secondary rounded-lg shadow-md p-2">
@@ -39,20 +26,12 @@ export default function Card({ image, title, soldCount, price, category, addToCa
       <div className="flex justify-between items-center mt-auto px-1">
         <span className="text-md font-bold text-gray-900">${price.toFixed(2)}</span>
         <button
-           onClick={() => handleSelect({ image, title, soldCount, price, category })}
+          onClick={handleSelect}
           className="bg-primary text-white px-3 py-1 rounded-full hover:bg-yellow-600"
         >
           Select
         </button>
       </div>
-
-      {showDrawer && (
-        <div className="fixed inset-0 bottom-16 flex justify-center items-center bg-black bg-opacity-50 z-50">
-          <div className="bg-white w-full h-full p-4 overflow-y-auto">
-            <DrinkDetails drink={selectedDrink} onBack={handleCloseDrawer} addToCart={addToCart} />
-          </div>
-        </div>
-      )}
     </div>
   );
 }

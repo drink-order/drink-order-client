@@ -1,7 +1,6 @@
 import { getServerSession } from "next-auth";
 import { authOptions } from "../../lib/auth";
-import Signout from "../../components/Signout";
-import Dashboard from "../../components/Staff-Dashboard/Dashboard";
+import SignOutButton from "../../components/SignOut";
 
 const Page = async () => {
   const session = await getServerSession(authOptions);
@@ -9,9 +8,9 @@ const Page = async () => {
   if (session?.user) {
     return (
       <div>
-        <h2>Admin page - welcome back {session.user.username}</h2>
+        <h2>Admin page - welcome back {session.user.username || session.user.username}</h2>
         {/* <Dashboard /> */}
-        <Signout />
+        <SignOutButton />
       </div>
     );
   }

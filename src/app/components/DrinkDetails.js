@@ -2,18 +2,16 @@
 
 import React, { useState } from "react";
 import DrinkOption from "./DrinkOption";
-import StickyCartButton from "./StickyCartButton";
 import CounterInput from "./CounterInput";
 import Button from "./Button";
 
-const DrinkDetails = ({ drink, addToCart, onBack }) => {
-    const [quantity, setQuantity] = useState(1);
-    const [showStickyCart, setShowStickyCart] = useState(false);
-    
-    const handleAddToCart = () => {
-      addToCart({ ...drink, quantity });
-      setShowStickyCart(true);
-    };
+const DrinkDetails = ({ drink, onBack }) => {
+  const [quantity, setQuantity] = useState(1);
+
+  const handleAddToCart = () => {
+    // Assuming addToCart is defined elsewhere in your application
+    addToCart({ ...drink, quantity });
+  };
 
   return (
     <div className="max-w-lg mx-auto p-4">
@@ -27,14 +25,17 @@ const DrinkDetails = ({ drink, addToCart, onBack }) => {
       </button>
 
       <div className="flex justify-center">
-          {/* Drink Image */}
-          <img
-            src={drink.image || "/default-drink.png"}
-            alt={drink.title}
-            className="rounded-t-lg w-36 h-36 object-cover"
-          />
+        {/* Drink Image */}
+        <img
+          src={drink.image || "/default-drink.png"}
+          alt={drink.title}
+          className="rounded-t-lg w-36 h-36 object-cover"
+        />
       </div>
+
+      {/* Drink Options */}
       <DrinkOption />
+
       <div className="flex justify-between items-center mt-4">
         <CounterInput value={quantity} onChange={setQuantity} />
         <Button
@@ -44,10 +45,6 @@ const DrinkDetails = ({ drink, addToCart, onBack }) => {
           Add to Cart
         </Button>
       </div>
-
-      {showStickyCart && (
-        <StickyCartButton product={drink} addToCart={addToCart} />
-      )}
     </div>
   );
 };

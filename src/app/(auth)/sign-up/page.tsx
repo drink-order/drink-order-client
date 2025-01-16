@@ -4,14 +4,20 @@ import { useForm } from 'react-hook-form';
 import * as z from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import Link from 'next/link';
-import { headers } from 'next/headers';
 import { useRouter } from 'next/navigation';
 import { useToast } from "@/hooks/use-toast"
+
+const phoneRegex = /^0\d{8,9}$/;
 
 const FormSchema = z
   .object({
     username: z.string().min(1, 'Username is required').max(100),
-    email: z.string().min(1, 'Email is required').email('Invalid email'),
+    identifier: z
+      .string()
+      .min(1, 'Email or phone number is required')
+      .refine((val) => phoneRegex.test(val) || /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(val), {
+        message: 'Please provide a valid email or phone number',
+      }),
     password: z
       .string()
       .min(1, 'Password is required')
@@ -25,12 +31,12 @@ const FormSchema = z
 
 const SignUpForm = () => {
   const router = useRouter();
-  const { toast } = useToast()
+  const { toast } = useToast();
   const form = useForm<z.infer<typeof FormSchema>>({
     resolver: zodResolver(FormSchema),
     defaultValues: {
       username: '',
-      email: '',
+      identifier: '',
       password: '',
       confirmPassword: '',
     },
@@ -40,23 +46,23 @@ const SignUpForm = () => {
     const response = await fetch('/api/user', {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
       },
       body: JSON.stringify({
         username: values.username,
-        email: values.email,
-        password: values.password
-      })
-    })
+        identifier: values.identifier,
+        password: values.password,
+      }),
+    });
 
     if (response.ok) {
-      router.push('/sign-in')
+      router.push('/sign-in');
     } else {
       toast({
         title: "Error",
         description: "Ops something went wrong",
         variant: "destructive",
-      })
+      });
     }
   };
 
@@ -67,7 +73,7 @@ const SignUpForm = () => {
         className="bg-white p-6 rounded-md shadow-md w-full max-w-md"
       >
         <h2 className="text-2xl font-bold mb-4 text-center">Create an account</h2>
-        
+
         <div className="mb-4">
           <label htmlFor="username" className="block text-sm font-medium text-gray-700">
             Username
@@ -87,18 +93,20 @@ const SignUpForm = () => {
         </div>
 
         <div className="mb-4">
-          <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-            Email
+          <label htmlFor="identifier" className="block text-sm font-medium text-gray-700">
+            Email or Phone Number
           </label>
           <input
-            id="email"
-            type="email"
-            placeholder="kimthona@gmail.com"
-            {...form.register('email')}
+            id="identifier"
+            type="text"
+            placeholder="kimthona@gmail.com or 012345678"
+            {...form.register('identifier')}
             className="mt-1 block w-full p-2 border border-gray-300 rounded-md"
           />
-          {form.formState.errors.email && (
-            <p className="text-red-500 text-sm">{form.formState.errors.email.message}</p>
+          {form.formState.errors.identifier && (
+            <p className="text-red-500 text-sm">
+              {form.formState.errors.identifier.message}
+            </p>
           )}
         </div>
 
@@ -145,13 +153,10 @@ const SignUpForm = () => {
           Create an account
         </button>
 
-        <div className="mx-auto my-4 flex w-full items-center justify-evenly before:mr-4 before:block before:h-px before:flex-grow before:bg-gray-300 after:ml-4 after:block after:h-px after:flex-grow after:bg-gray-300">
-          or
-        </div>
         <p className="text-center text-sm text-gray-600 mt-4">
           Already have an account?{' '}
           <Link href="/sign-in" className="text-blue-500 hover:underline">
-            Login here
+            sign in here
           </Link>
         </p>
       </form>
