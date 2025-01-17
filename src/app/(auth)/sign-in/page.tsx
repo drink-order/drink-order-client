@@ -9,7 +9,7 @@ import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 import { FcGoogle } from 'react-icons/fc';
 
-const phoneRegex = /^0\d{8,9}$/;
+const phoneRegex = /^\+855\d{8,9}$/;
 
 const FormSchema = z.object({
   identifier: z
@@ -84,7 +84,7 @@ const SignInForm = () => {
                   {...form.register('identifier')}
                   id="identifier"
                   className="bg-gray-50 border border-gray-300 text-gray-900 rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
-                  placeholder="kimthona@gmail.com or 012345678"
+                  placeholder="kimthona@gmail.com or +85512345678"
                 />
                 <p className="text-red-600 text-sm mt-1">
                   {form.formState.errors.identifier?.message}
