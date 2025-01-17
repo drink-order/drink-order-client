@@ -13,18 +13,22 @@ import {
   InputOTPSeparator,
   InputOTPSlot,
 } from "@/components/ui/input-otp";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useToast } from "@/hooks/use-toast";
 
 function OtpLogin() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const { toast } = useToast();
 
-  const [phoneNumber, setPhoneNumber] = useState("");
+  // Get phone number, username, and password from query params
+  const [phoneNumber, setPhoneNumber] = useState(searchParams.get("phoneNumber") || "");
   const [otp, setOtp] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState("");
   const [resendCountdown, setResendCountdown] = useState(0);
+  const [name, setName] = useState(searchParams.get("username") || ""); // Username from signup
+  const [password, setPassword] = useState(searchParams.get("password") || ""); // Password from signup
 
   const [recaptchaVerifier, setRecaptchaVerifier] =
     useState<RecaptchaVerifier | null>(null);
@@ -43,24 +47,28 @@ function OtpLogin() {
   }, [resendCountdown]);
 
   useEffect(() => {
-    const recaptchaVerifier = new RecaptchaVerifier(
+    const verifier = new RecaptchaVerifier(
       auth,
       "recaptcha-container",
       {
         size: "invisible",
-      }
+      },
     );
-
-    setRecaptchaVerifier(recaptchaVerifier);
+    setRecaptchaVerifier(verifier);
 
     return () => {
-      recaptchaVerifier.clear();
+      verifier.clear();
     };
-  }, [auth]);
+  }, []);
 
   useEffect(() => {
-    const hasEnteredAllDigits = otp.length === 6;
-    if (hasEnteredAllDigits) {
+    if (phoneNumber && recaptchaVerifier) {
+      requestOtp();
+    }
+  }, [phoneNumber, recaptchaVerifier]);
+
+  useEffect(() => {
+    if (otp.length === 6) {
       verifyOtp();
     }
   }, [otp]);
@@ -75,11 +83,32 @@ function OtpLogin() {
       }
 
       try {
-        await confirmationResult?.confirm(otp);
-        router.replace("/");
-      } catch (error) {
-        console.log(error);
+        await confirmationResult.confirm(otp);
 
+        // Handle signup logic
+        const response = await fetch('/api/user', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            username: name,
+            identifier: phoneNumber,
+            password: password,
+          }),
+        });
+
+        if (response.ok) {
+          router.push('/sign-in');
+        } else {
+          toast({
+            title: "Error",
+            description: "Ops something went wrong",
+            variant: "destructive",
+          });
+        }
+      } catch (error) {
+        console.error(error);
         setError("Failed to verify OTP. Please check the OTP.");
       }
     });
@@ -87,14 +116,14 @@ function OtpLogin() {
 
   const requestOtp = async (e?: FormEvent<HTMLFormElement>) => {
     e?.preventDefault();
-
     setResendCountdown(60);
 
     startTransition(async () => {
       setError("");
 
       if (!recaptchaVerifier) {
-        return setError("RecaptchaVerifier is not initialized.");
+        setError("RecaptchaVerifier is not initialized.");
+        return;
       }
 
       try {
@@ -103,11 +132,10 @@ function OtpLogin() {
           phoneNumber,
           recaptchaVerifier
         );
-
         setConfirmationResult(confirmationResult);
         setSuccess("OTP sent successfully.");
       } catch (err: any) {
-        console.log(err);
+        console.error(err);
         setResendCountdown(0);
 
         if (err.code === "auth/invalid-phone-number") {
@@ -145,20 +173,6 @@ function OtpLogin() {
 
   return (
     <div className="flex flex-col justify-center items-center">
-      {!confirmationResult && (
-        <form onSubmit={requestOtp}>
-          <Input
-            className="text-black"
-            type="tel"
-            value={phoneNumber}
-            onChange={(e) => setPhoneNumber(e.target.value)}
-          />
-          <p className="text-xs text-gray-400 mt-2">
-            Please enter your number with the country code (i.e. +44 for UK)
-          </p>
-        </form>
-      )}
-
       {confirmationResult && (
         <InputOTP maxLength={6} value={otp} onChange={(value) => setOtp(value)}>
           <InputOTPGroup>
@@ -175,24 +189,12 @@ function OtpLogin() {
         </InputOTP>
       )}
 
-      <Button
-        disabled={!phoneNumber || isPending || resendCountdown > 0}
-        onClick={() => requestOtp()}
-        className="mt-5"
-      >
-        {resendCountdown > 0
-          ? `Resend OTP in ${resendCountdown}`
-          : isPending
-          ? "Sending OTP"
-          : "Send OTP"}
-      </Button>
+      <div id="recaptcha-container" />
 
       <div className="p-10 text-center">
         {error && <p className="text-red-500">{error}</p>}
         {success && <p className="text-green-500">{success}</p>}
       </div>
-
-      <div id="recaptcha-container" />
 
       {isPending && loadingIndicator}
     </div>

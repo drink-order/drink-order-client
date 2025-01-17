@@ -4,7 +4,7 @@ import { hash } from "bcrypt";
 import * as z from "zod";
 
 // Regular expression for validating Cambodian phone numbers
-const phoneRegex = /^0\d{8,9}$/;
+const phoneRegex = /^\+855\d{8,9}$/;
 
 // Define the schema for input validation
 const userSchema = z
