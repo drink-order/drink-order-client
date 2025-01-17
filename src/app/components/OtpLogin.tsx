@@ -1,6 +1,6 @@
 "use client";
 
-import { auth } from "../../firebase"; // Update the path to the correct location of your firebase module
+import { auth } from "@/firebase";
 import {
   ConfirmationResult,
   RecaptchaVerifier,
@@ -43,19 +43,20 @@ function OtpLogin() {
   }, [resendCountdown]);
 
   useEffect(() => {
-    const verifier = new RecaptchaVerifier(
+    const recaptchaVerifier = new RecaptchaVerifier(
       auth,
       "recaptcha-container",
       {
         size: "invisible",
       }
     );
-    setRecaptchaVerifier(verifier);
+
+    setRecaptchaVerifier(recaptchaVerifier);
 
     return () => {
-      verifier.clear();
+      recaptchaVerifier.clear();
     };
-  }, []);
+  }, [auth]);
 
   useEffect(() => {
     const hasEnteredAllDigits = otp.length === 6;
@@ -72,11 +73,13 @@ function OtpLogin() {
         setError("Please request OTP first.");
         return;
       }
+
       try {
         await confirmationResult?.confirm(otp);
         router.replace("/");
       } catch (error) {
         console.log(error);
+
         setError("Failed to verify OTP. Please check the OTP.");
       }
     });
@@ -86,11 +89,12 @@ function OtpLogin() {
     e?.preventDefault();
 
     setResendCountdown(60);
+
     startTransition(async () => {
       setError("");
+
       if (!recaptchaVerifier) {
-        setError("RecaptchaVerifier is not initialized.");
-        return;
+        return setError("RecaptchaVerifier is not initialized.");
       }
 
       try {
@@ -99,16 +103,16 @@ function OtpLogin() {
           phoneNumber,
           recaptchaVerifier
         );
+
         setConfirmationResult(confirmationResult);
-        setResendCountdown(60); // Set countdown for 60 seconds
-      } catch (error: any) {
-        setError("Failed to send OTP. Please try again.");
-        console.log(error);
+        setSuccess("OTP sent successfully.");
+      } catch (err: any) {
+        console.log(err);
         setResendCountdown(0);
 
-        if (error.code === "auth/invalid-phone-number") {
+        if (err.code === "auth/invalid-phone-number") {
           setError("Invalid phone number. Please check the number.");
-        } else if (error.code === "auth/too-many-requests") {
+        } else if (err.code === "auth/too-many-requests") {
           setError("Too many requests. Please try again later.");
         } else {
           setError("Failed to send OTP. Please try again.");
@@ -140,7 +144,7 @@ function OtpLogin() {
   );
 
   return (
-    <div>
+    <div className="flex flex-col justify-center items-center">
       {!confirmationResult && (
         <form onSubmit={requestOtp}>
           <Input
@@ -189,6 +193,7 @@ function OtpLogin() {
       </div>
 
       <div id="recaptcha-container" />
+
       {isPending && loadingIndicator}
     </div>
   );
