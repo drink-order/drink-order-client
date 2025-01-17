@@ -1,16 +1,15 @@
 "use client";
 
 import { createContext, useContext, useEffect, useState, ReactNode } from "react";
-import { auth } from "./firebase";
+import { auth } from "./firebase"; // Ensure this points to your Firebase initialization file
 import { onAuthStateChanged, User } from "firebase/auth";
 import { SessionProvider } from "next-auth/react";
 
-// Update context type to use `firebaseUser` instead of `user`
 type AuthContextType = {
-  firebaseUser: User | null;
+  firebaseUser: User | null; // Firebase user context
 };
 
-const AuthContext = createContext<AuthContextType>({ firebaseUser: null });
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 interface AuthProviderProps {
   children: ReactNode;
@@ -20,26 +19,30 @@ const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [firebaseUser, setFirebaseUser] = useState<User | null>(null);
 
   useEffect(() => {
-    // Subscribe to Firebase auth state changes
+    // Monitor Firebase auth state
     const unsubscribe = onAuthStateChanged(auth, (user) => {
-      setFirebaseUser(user || null);
+      setFirebaseUser(user);
     });
 
-    // Cleanup the subscription when the component unmounts
+    // Cleanup subscription
     return () => unsubscribe();
   }, []);
 
   return (
     <AuthContext.Provider value={{ firebaseUser }}>
-      {/* Wrap everything in the NextAuth SessionProvider */}
+      {/* Wrap in NextAuth SessionProvider */}
       <SessionProvider>{children}</SessionProvider>
     </AuthContext.Provider>
   );
 };
 
-// Custom hook to access Firebase user authentication context
-export function useAuth() {
-  return useContext(AuthContext);
-}
+// Hook for accessing Firebase user context
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (context === undefined) {
+    throw new Error("useAuth must be used within an AuthProvider");
+  }
+  return context;
+};
 
 export default AuthProvider;
