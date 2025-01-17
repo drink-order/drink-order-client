@@ -1,33 +1,31 @@
 import NextAuth from "next-auth";
-import { JWT } from "next-auth";
 
-// Define UserRole type for roles
-type UserRole = 'admin' | 'shopOwner' | 'staff' | 'user';
+type UserRole = string; // Or explicitly define valid roles
 
 declare module "next-auth" {
     interface User {
-        id: number; // Prisma's `id` is an Int, so use `number` here
-        email?: string; // Email is optional
-        phone?: string; // Phone is optional
-        username?: string; // Username is optional
-        role: string; // Role has a default value, so it's required
+        id: string; // Use string for Prisma's cuid
+        email?: string;
+        phone?: string;
+        username?: string | null;
+        role: UserRole; // Ensure consistency
     }
 
     interface Session {
         user: {
-            id: number;
+            id: string;
             email?: string;
             phone?: string;
             username?: string;
-            role: string;
+            role: UserRole;
         };
     }
 
     interface JWT {
-        id: number;
+        id: string;
         email?: string;
         phone?: string;
         username?: string;
-        role: string;
+        role: UserRole;
     }
 }

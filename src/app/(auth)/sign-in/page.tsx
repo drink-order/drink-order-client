@@ -7,6 +7,7 @@ import GoogleSignInButton from '../../components/GoogleSignInButton';
 import { signIn } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
+import { FcGoogle } from 'react-icons/fc';
 
 const phoneRegex = /^0\d{8,9}$/;
 
@@ -51,6 +52,14 @@ const SignInForm = () => {
     } else {
       router.refresh();
       router.push('/');
+    }
+  };
+
+  const handleGoogleSignIn = async () => {
+    try {
+      await signIn('google', { callbackUrl: 'http://localhost:3000' });
+    } catch (err) {
+      console.error('Google sign-in error:', err);
     }
   };
 
@@ -108,7 +117,13 @@ const SignInForm = () => {
               <div className="mx-auto my-4 flex w-full items-center justify-evenly before:mr-4 before:block before:h-px before:flex-grow before:bg-stone-400 after:ml-4 after:block after:h-px after:flex-grow after:bg-stone-400">
                 or
               </div>
-              <GoogleSignInButton />
+              <button
+                type="button"
+                onClick={handleGoogleSignIn}
+                className="w-full text-white bg-blue-600 hover:bg-blue-700 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-primary-600 dark:hover:bg-primary-700 dark:focus:ring-primary-800"
+              >
+                <FcGoogle className="inline-block mr-2" /> Sign in with Google
+              </button>
               <p className="text-sm font-light text-gray-500 dark:text-gray-400">
                 Don&apos;t have an account yet?{' '}
                 <a

@@ -32,7 +32,7 @@ export default function Home() {
     }
   }, [session, router]);
 
-  const userName = session?.user?.username || 'Customer';
+  const userName = session?.user?.username || session?.user?.name || 'Customer';
 
   return (
     <div className="min-h-screen bg-gray-100 flex flex-col">
