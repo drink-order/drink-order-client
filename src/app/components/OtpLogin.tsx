@@ -16,6 +16,9 @@ import {
 import { useRouter, useSearchParams } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
 
+// Suspense boundary for handling loading state during client-side operations
+import { Suspense } from "react";
+
 function OtpLogin() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -179,32 +182,34 @@ function OtpLogin() {
   );
 
   return (
-    <div className="flex flex-col justify-center items-center">
-      {confirmationResult && (
-        <InputOTP maxLength={6} value={otp} onChange={(value) => setOtp(value)}>
-          <InputOTPGroup>
-            <InputOTPSlot index={0} />
-            <InputOTPSlot index={1} />
-            <InputOTPSlot index={2} />
-          </InputOTPGroup>
-          <InputOTPSeparator />
-          <InputOTPGroup>
-            <InputOTPSlot index={3} />
-            <InputOTPSlot index={4} />
-            <InputOTPSlot index={5} />
-          </InputOTPGroup>
-        </InputOTP>
-      )}
+    <Suspense fallback={loadingIndicator}>
+      <div className="flex flex-col justify-center items-center">
+        {confirmationResult && (
+          <InputOTP maxLength={6} value={otp} onChange={(value) => setOtp(value)}>
+            <InputOTPGroup>
+              <InputOTPSlot index={0} />
+              <InputOTPSlot index={1} />
+              <InputOTPSlot index={2} />
+            </InputOTPGroup>
+            <InputOTPSeparator />
+            <InputOTPGroup>
+              <InputOTPSlot index={3} />
+              <InputOTPSlot index={4} />
+              <InputOTPSlot index={5} />
+            </InputOTPGroup>
+          </InputOTP>
+        )}
 
-      <div id="recaptcha-container" />
+        <div id="recaptcha-container" />
 
-      <div className="p-10 text-center">
-        {error && <p className="text-red-500">{error}</p>}
-        {success && <p className="text-green-500">{success}</p>}
+        <div className="p-10 text-center">
+          {error && <p className="text-red-500">{error}</p>}
+          {success && <p className="text-green-500">{success}</p>}
+        </div>
+
+        {isPending && loadingIndicator}
       </div>
-
-      {isPending && loadingIndicator}
-    </div>
+    </Suspense>
   );
 }
 
