@@ -1,7 +1,41 @@
-import React from "react";
+"use client";
+import React, { useState, useEffect } from "react";
 import { PiEyesDuotone } from "react-icons/pi";
 
-const PendingPage = ({ orders, moveOrder }) => {
+const PendingPage = () => {
+  const [orders, setOrders] = useState({ pending: [] });
+
+  useEffect(() => {
+    // Fetch orders from the mock data or API endpoint
+    const fetchOrders = async () => {
+      try {
+        const res = await fetch("http://localhost:3000/admin/api/orders");
+        if (!res.ok) {
+          throw new Error("Failed to fetch orders");
+        }
+        const data = await res.json();
+        setOrders(data);
+      } catch (error) {
+        console.error("Error fetching orders:", error);
+      }
+    };
+
+    fetchOrders();
+  }, []);
+
+  const moveOrder = (id, fromStatus, toStatus) => {
+    setOrders((prevOrders) => {
+      const orderToMove = prevOrders[fromStatus].find((order) => order.id === id);
+      if (!orderToMove) return prevOrders;
+
+      return {
+        ...prevOrders,
+        [fromStatus]: prevOrders[fromStatus].filter((order) => order.id !== id),
+        [toStatus]: [...prevOrders[toStatus], orderToMove],
+      };
+    });
+  };
+
   const moveToCompleted = (id) => {
     moveOrder(id, 'pending', 'completed');
   };
@@ -35,7 +69,7 @@ const PendingPage = ({ orders, moveOrder }) => {
                 <td className="p-2 border">{order.date}</td>
                 <td className="p-2 border">Preparing</td>
                 <td className="p-2 border">{order.total}</td>
-                <td className="p-2 border">Unpaid</td>
+                <td className="p-2 border">{order.paymentStatus}</td>
                 <td className="p-2 border text-center">
                   <PiEyesDuotone className="inline-block cursor-pointer text-2xl" />
                 </td>
@@ -57,5 +91,3 @@ const PendingPage = ({ orders, moveOrder }) => {
 };
 
 export default PendingPage;
-
-
