@@ -1,4 +1,6 @@
-import React from 'react';
+"use client";
+
+import React, { useEffect, useState } from 'react';
 import Removebtn from './Removebtn';
 import Link from 'next/link';
 import { HiPencilAlt } from 'react-icons/hi';
@@ -22,8 +24,17 @@ const getCategories = async () => {
   }
 }
 
-export default async function CategoryList() {
-  const { categories } = await getCategories();
+export default function CategoryList() {
+  const [categories, setCategories] = useState([]);
+
+  useEffect(() => {
+    const fetchCategories = async () => {
+      const data = await getCategories();
+      setCategories(data.categories);
+    };
+
+    fetchCategories();
+  }, []);
 
   return (
     <div>
