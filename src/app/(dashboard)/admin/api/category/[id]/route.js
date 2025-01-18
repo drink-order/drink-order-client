@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getCategoryById, updateCategory } from '../../libs/mockData';
+import { getCategoryById, updateCategory } from '../../../../libs/mockData';
 
 export async function PUT(request, { params }) {
   const { id } = params;

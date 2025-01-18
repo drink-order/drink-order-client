@@ -1,6 +1,6 @@
 import { getServerSession } from "next-auth";
 import { authOptions } from "../../lib/auth";
-import SignOutButton from "../../components/SignOut";
+import SignOutButton from "../../components/Signout";
 import CategoryList from './components/CategoryList';
 
 const Page = async () => {
