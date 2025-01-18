@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 import { auth } from "@/firebase";
 import {
@@ -38,6 +38,7 @@ function OtpLogin() {
 
   const [isPending, startTransition] = useTransition();
 
+  // Countdown timer for resend OTP
   useEffect(() => {
     let timer: NodeJS.Timeout;
     if (resendCountdown > 0) {
@@ -46,13 +47,14 @@ function OtpLogin() {
     return () => clearTimeout(timer);
   }, [resendCountdown]);
 
+  // Initialize reCAPTCHA when the component mounts
   useEffect(() => {
     const verifier = new RecaptchaVerifier(
       auth,
       "recaptcha-container",
       {
         size: "invisible",
-      },
+      }
     );
     setRecaptchaVerifier(verifier);
 
@@ -61,18 +63,21 @@ function OtpLogin() {
     };
   }, []);
 
+  // Automatically request OTP when phone number is available
   useEffect(() => {
     if (phoneNumber && recaptchaVerifier) {
       requestOtp();
     }
   }, [phoneNumber, recaptchaVerifier]);
 
+  // Automatically verify OTP when the user enters it
   useEffect(() => {
     if (otp.length === 6) {
       verifyOtp();
     }
   }, [otp]);
 
+  // Function to verify OTP entered by the user
   const verifyOtp = async () => {
     startTransition(async () => {
       setError("");
@@ -114,6 +119,7 @@ function OtpLogin() {
     });
   };
 
+  // Function to request OTP
   const requestOtp = async (e?: FormEvent<HTMLFormElement>) => {
     e?.preventDefault();
     setResendCountdown(60);
@@ -149,6 +155,7 @@ function OtpLogin() {
     });
   };
 
+  // Loading spinner when OTP is pending
   const loadingIndicator = (
     <div role="status" className="flex justify-center">
       <svg
