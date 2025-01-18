@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import NotificationCompo from "../components/NotificationCompo";
@@ -23,13 +23,12 @@ const Notification = () => {
     }
   }, [session, router]);
 
-
-const Page = () => {
   const [showDetails, setShowDetails] = useState(false);
 
   const handleNotificationClick = () => {
     setShowDetails(true); // Show OrderSummary and OrderInfo when clicked
-  }
+  };
+
   return (
     <div className="p-4">
       {!showDetails ? (
