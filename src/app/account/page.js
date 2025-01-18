@@ -1,5 +1,5 @@
 import React from 'react'
-import SignOutButton from '../components/SignOut'
+import SignOutButton from '../components/Signout'
 
 const Account = () => {
   return (
