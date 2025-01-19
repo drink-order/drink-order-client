@@ -3,7 +3,7 @@ import { useRouter } from 'next/navigation';
 import React from 'react';
 import { HiOutlineTrash } from "react-icons/hi";
 
-export default function Removebtn({ id }) {
+export default function Removebtn({ id, onDelete }) {
   const router = useRouter();
 
   const removeCategory = async () => {
@@ -16,7 +16,7 @@ export default function Removebtn({ id }) {
         });
 
         if (res.ok) {
-          router.refresh();
+          onDelete(id); // Call the onDelete callback to update the state
         } else {
           console.error("Failed to delete category");
         }

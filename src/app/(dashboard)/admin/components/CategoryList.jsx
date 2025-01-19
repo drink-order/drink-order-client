@@ -16,6 +16,7 @@ const getCategories = async () => {
     }
 
     const data = await res.json();
+    console.log('Fetched Categories:', data); // Debugging log
     return data;
 
   } catch (error) {
@@ -36,17 +37,20 @@ export default function CategoryList() {
     fetchCategories();
   }, []);
 
+  const handleDelete = (id) => {
+    setCategories(categories.filter(category => category.id !== id));
+  };
+
   return (
     <div>
       {categories.map(c => (
-        <div key={c._id} className="p-4 border border-slate-300 my-3 flex justify-between gap-5 items-start">
+        <div key={c.id} className="p-4 border border-slate-300 my-3 flex justify-between gap-5 items-start">
           <div>
-            <h2 className="font-bold text-lg">{c.idCategory}</h2>
-            <div>{c.nameCategory}</div>
+            <h2 className="font-bold text-lg">{c.nameCategory}</h2>
           </div>
           <div className="flex gap-2">
-            <Removebtn id={c._id} />
-            <Link href={`/admin/editCategory/${c._id}`}>
+            <Removebtn id={c.id} onDelete={handleDelete} />
+            <Link href={`/admin/editCategory/${c.id}`}>
               <HiPencilAlt size={24} />
             </Link>
           </div>

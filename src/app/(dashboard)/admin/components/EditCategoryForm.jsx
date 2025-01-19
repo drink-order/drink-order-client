@@ -2,8 +2,7 @@
 import { useRouter } from 'next/navigation';
 import React, { useState } from 'react';
 
-export default function EditCategoryForm({ id, idCategory, nameCategory }) {
-  const [newID, setNewID] = useState(idCategory);
+export default function EditCategoryForm({ id, nameCategory }) {
   const [newName, setNewName] = useState(nameCategory);
 
   const router = useRouter();
@@ -17,7 +16,7 @@ export default function EditCategoryForm({ id, idCategory, nameCategory }) {
         headers: {
           "Content-type": "application/json",
         },
-        body: JSON.stringify({ newID, newName }),
+        body: JSON.stringify({ newName }),
       });
 
       if (!res.ok) {
@@ -30,15 +29,12 @@ export default function EditCategoryForm({ id, idCategory, nameCategory }) {
     }
   };
 
+  const handleBack = () => {
+    router.back();
+  };
+
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-3">
-      <input
-        onChange={(e) => setNewID(e.target.value)}
-        value={newID}
-        className="border border-slate-500 px-8 py-2"
-        type="text"
-        placeholder="Category ID"
-      />
       <input
         onChange={(e) => setNewName(e.target.value)}
         value={newName}
@@ -46,9 +42,15 @@ export default function EditCategoryForm({ id, idCategory, nameCategory }) {
         type="text"
         placeholder="Category Name"
       />
-      <button className="bg-[#5D4435] font-bold text-white py-3 px-5 w-fit">
-        Update Category
-      </button>
+      <div className="flex gap-3">
+        <button type="button" onClick={handleBack} className="bg-[#5D4435] font-bold text-white py-3 px-5 w-fit">
+          Back
+        </button>
+
+        <button type="submit" className="bg-[#5D4435] font-bold text-white py-3 px-5 w-fit">
+          Update Category
+        </button>
+      </div>
     </form>
   );
 }
