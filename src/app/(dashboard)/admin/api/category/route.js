@@ -7,8 +7,8 @@ import {
 
 export async function POST(request) {
   try {
-    const { idCategory, nameCategory } = await request.json();
-    const newCategory = { _id: Date.now().toString(), idCategory, nameCategory }; // Generate a unique ID for the new category
+    const { nameCategory } = await request.json();
+    const newCategory = { nameCategory }; // Only include nameCategory
     const createdCategory = createCategory(newCategory);
     return NextResponse.json({ message: "Category Created", category: createdCategory }, { status: 201 });
   } catch (error) {
@@ -30,7 +30,7 @@ export async function GET() {
 export async function DELETE(request) {
   try {
     const id = request.nextUrl.searchParams.get("id");
-    const deletedCategory = deleteCategory(id);
+    const deletedCategory = deleteCategory(parseInt(id, 10));
     if (deletedCategory) {
       return NextResponse.json({ message: "Category Deleted" }, { status: 200 });
     } else {

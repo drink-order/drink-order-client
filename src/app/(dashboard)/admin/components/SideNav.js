@@ -1,16 +1,10 @@
 "use client";
-import React, { useState } from "react";
+import React from "react";
 import Link from "next/link"; // Import next/link for routing
 import { FaCoffee } from "react-icons/fa";
 import { PiNotificationBold } from "react-icons/pi";
 
 export default function SideNav() {
-  const [activeButton, setActiveButton] = useState("admin");
-
-  const handleButtonClick = (button) => {
-    setActiveButton(button);
-  };
-
   return (
     <div className="flex h-full">
       {/* Sidebar */}
@@ -28,10 +22,7 @@ export default function SideNav() {
             <li>
               <Link
                 href="/admin" // Use Next.js Link with href
-                className={`w-full flex items-center px-3 py-2 rounded-md ${
-                  activeButton === "admin" ? "bg-yellow-400 text-white" : "text-gray-700 hover:text-white hover:bg-yellow-400"
-                }`}
-                onClick={() => handleButtonClick("management")}
+                className="w-full flex items-center px-3 py-2 rounded-md bg-yellow-400 text-white"
               >
                 <span className="mr-2">
                   <PiNotificationBold />
@@ -42,11 +33,8 @@ export default function SideNav() {
           </ul>
         </div>
         <Link
-          href="/admin/profile" // Use Next.js Link with href
-          className={`p-4 flex items-center space-x-3 w-full text-left ${
-            activeButton === "profile" ? "bg-yellow-400 text-white" : "text-gray-700 hover:text-white hover:bg-yellow-400"
-          }`}
-          onClick={() => handleButtonClick("profile")}
+          href="/account" // Use Next.js Link with href
+          className="p-4 flex items-center space-x-3 w-full text-left text-gray-700 hover:text-white hover:bg-yellow-400"
         >
           <img src="./chillguy.jpg" alt="Profile" className="w-10 h-10 rounded-full" />
           <div>
@@ -55,7 +43,6 @@ export default function SideNav() {
           </div>
         </Link>
       </div>
-
     </div>
   );
 }

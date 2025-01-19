@@ -1,6 +1,5 @@
 import { getServerSession } from "next-auth";
 import { authOptions } from "../../lib/auth";
-import SignOutButton from "../../components/Signout";
 import CategoryList from './components/CategoryList';
 
 const Page = async () => {
@@ -11,7 +10,6 @@ const Page = async () => {
       <div>
         <h2>Admin page - welcome back {session.user.username}</h2>
         <CategoryList />
-        <SignOutButton />
       </div>
     );
   }
