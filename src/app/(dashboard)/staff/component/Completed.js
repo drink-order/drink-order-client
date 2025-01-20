@@ -2,8 +2,8 @@
 import React, { useState, useEffect } from "react";
 import { PiEyesDuotone } from "react-icons/pi";
 
-const PendingPage = () => {
-  const [orders, setOrders] = useState({ pending: [] });
+const Completed = () => {
+  const [orders, setOrders] = useState([]);
 
   useEffect(() => {
     // Fetch orders from the mock data or API endpoint
@@ -14,7 +14,7 @@ const PendingPage = () => {
           throw new Error("Failed to fetch orders");
         }
         const data = await res.json();
-        setOrders(data);
+        setOrders(data.orders.filter(order => order.orderStatus === "Completed"));
       } catch (error) {
         console.error("Error fetching orders:", error);
       }
@@ -23,26 +23,9 @@ const PendingPage = () => {
     fetchOrders();
   }, []);
 
-  const moveOrder = (id, fromStatus, toStatus) => {
-    setOrders((prevOrders) => {
-      const orderToMove = prevOrders[fromStatus].find((order) => order.id === id);
-      if (!orderToMove) return prevOrders;
-
-      return {
-        ...prevOrders,
-        [fromStatus]: prevOrders[fromStatus].filter((order) => order.id !== id),
-        [toStatus]: [...prevOrders[toStatus], orderToMove],
-      };
-    });
-  };
-
-  const moveToCompleted = (id) => {
-    moveOrder(id, 'pending', 'completed');
-  };
-
   return (
-    <div className="p-4">
-      <h1 className="p-4 text-2xl text-black font-bold mb-4">All Customers</h1>
+    <div className="p-4 mb-8">
+      <h1 className="p-4 text-2xl text-black font-bold mb-4">Completed Orders</h1>
       <table className="w-full border-collapse border border-gray-200 text-black text-center">
         <thead className="bg-gray-200">
           <tr>
@@ -56,29 +39,26 @@ const PendingPage = () => {
           </tr>
         </thead>
         <tbody>
-          {(!orders || orders.pending.length === 0) ? (
+          {orders.length === 0 ? (
             <tr>
               <td className="p-4 text-gray-500" colSpan="7">
                 No orders available
               </td>
             </tr>
           ) : (
-            orders.pending.map((order) => (
+            orders.map((order) => (
               <tr key={order.id}>
                 <td className="p-2 border">{order.id}</td>
                 <td className="p-2 border">{order.date}</td>
-                <td className="p-2 border">Preparing</td>
+                <td className="p-2 border">Completed</td>
                 <td className="p-2 border">{order.total}</td>
-                <td className="p-2 border">{order.paymentStatus}</td>
+                <td className="p-2 border">Paid</td>
                 <td className="p-2 border text-center">
                   <PiEyesDuotone className="inline-block cursor-pointer text-2xl" />
                 </td>
                 <td className="p-2 border">
-                  <button
-                    onClick={() => moveToCompleted(order.id)}
-                    className="bg-yellow-400 text-white hover:bg-yellow-500 px-4 py-1 rounded"
-                  >
-                    Ready
+                  <button className="bg-yellow-400 text-white hover:bg-yellow-500 hover:text-white border px-4 py-1 rounded">
+                    Pick up
                   </button>
                 </td>
               </tr>
@@ -90,4 +70,4 @@ const PendingPage = () => {
   );
 };
 
-export default PendingPage;
+export default Completed;
