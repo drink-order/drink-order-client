@@ -4,7 +4,6 @@ import React from "react";
 const OrderInfo = () => {
   const orderDetails = {
     orderNo: "78725191612-47187021",
-    paymentMethod: "Cash On Delivery",
     orderTime: "2024-12-27 12:45:32",
   };
 
@@ -28,11 +27,6 @@ const OrderInfo = () => {
             COPY
           </button>
         </div>
-      </div>
-
-      <div className="flex justify-between items-center mb-4">
-        <span className="font-medium">Payment Method</span>
-        <span className="text-gray-700">{orderDetails.paymentMethod}</span>
       </div>
 
       <div className="flex justify-between items-center">
