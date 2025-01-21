@@ -20,7 +20,6 @@ const Notification = () => {
       router.push('/staff');
     }
   }, [session, router]); const [showDetails, setShowDetails] = useState(false);
-
   return (
     <div className="p-4">
         <NotificationCompo />

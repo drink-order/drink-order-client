@@ -5,9 +5,9 @@ import * as z from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useToast } from "@/hooks/use-toast"
+import { useToast } from "@/hooks/use-toast";
 
-const phoneRegex = /^0\d{8,9}$/;
+const phoneRegex = /^\+855\d{8,9}$/;
 
 const FormSchema = z
   .object({
@@ -43,26 +43,34 @@ const SignUpForm = () => {
   });
 
   const onSubmit = async (values: z.infer<typeof FormSchema>) => {
-    const response = await fetch('/api/user', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        username: values.username,
-        identifier: values.identifier,
-        password: values.password,
-      }),
-    });
-
-    if (response.ok) {
-      router.push('/sign-in');
+    if (phoneRegex.test(values.identifier)) {
+      // Navigate to OTP verification page if the identifier is a phone number
+      router.push(
+        `/otp?username=${encodeURIComponent(values.username)}&phoneNumber=${encodeURIComponent(values.identifier)}&password=${encodeURIComponent(values.password)}`
+      );
     } else {
-      toast({
-        title: "Error",
-        description: "Ops something went wrong",
-        variant: "destructive",
+      // Handle email signup
+      const response = await fetch('/api/user', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          username: values.username,
+          identifier: values.identifier,
+          password: values.password,
+        }),
       });
+
+      if (response.ok) {
+        router.push('/sign-in');
+      } else {
+        toast({
+          title: "Error",
+          description: "Ops something went wrong",
+          variant: "destructive",
+        });
+      }
     }
   };
 
@@ -99,7 +107,7 @@ const SignUpForm = () => {
           <input
             id="identifier"
             type="text"
-            placeholder="kimthona@gmail.com or 012345678"
+            placeholder="kimthona@gmail.com or +85512345678"
             {...form.register('identifier')}
             className="mt-1 block w-full p-2 border border-gray-300 rounded-md"
           />

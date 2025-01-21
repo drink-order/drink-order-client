@@ -1,0 +1,150 @@
+[
+  {
+    "id": 2,
+    "categoryId": 4,
+    "categoryName": "category1",
+    "image": "https://www.butteredsideupblog.com/iced-matcha-latte-recipe/",
+    "title": "Matcha Latte",
+    "soldCount": 0,
+    "price": 2.5
+  },
+  {
+    "id": 3,
+    "categoryId": 5,
+    "categoryName": "category2",
+    "image": "https://www.butteredsideupblog.com/iced-matcha-latte-recipe/",
+    "title": "Ice latte",
+    "soldCount": 0,
+    "price": 1.8
+  },
+  {
+    "id": 4,
+    "categoryId": 7,
+    "categoryName": "category3",
+    "image": "https://www.butteredsideupblog.com/iced-matcha-latte-recipe/",
+    "title": "Hot Chocolate",
+    "soldCount": 0,
+    "price": 3
+  },
+  {
+    "id": 5,
+    "categoryId": 4,
+    "categoryName": "category1",
+    "image": "https://www.butteredsideupblog.com/iced-matcha-latte-recipe/",
+    "title": "Ice Chocolate",
+    "soldCount": 0,
+    "price": 2,
+    "createdAt": "2025-01-19T15:55:44.575Z",
+    "updatedAt": "2025-01-19T15:55:44.575Z"
+  },
+  {
+    "id": 6,
+    "categoryId": 4,
+    "categoryName": "category1",
+    "image": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTxcBTpeRlzcg-8sImI1TB1z-9nep7GLgWU8Q&s",
+    "title": "Mocha",
+    "soldCount": 0,
+    "price": 2.5,
+    "createdAt": "2025-01-19T16:06:53.603Z",
+    "updatedAt": "2025-01-19T16:06:53.603Z"
+  },
+  {
+    "id": 7,
+    "categoryId": 7,
+    "categoryName": "category3",
+    "image": "https://www.google.com/url?sa=i&url=https%3A%2F%2Fwww.mommyhatescooking.com%2Feasy-iced-mocha&psig=AOvVaw0r0k1B3F8NGJhEidxLdwYD&ust=1737389195844000&source=images&cd=vfe&opi=89978449&ved=0CBQQjRxqFwoTCNiwq6CVgosDFQAAAAAdAAAAABAE",
+    "title": "Hot Mocha",
+    "soldCount": 0,
+    "price": 2,
+    "createdAt": "2025-01-19T16:09:01.699Z",
+    "updatedAt": "2025-01-19T16:09:01.699Z"
+  },
+  {
+    "id": 8,
+    "categoryId": 7,
+    "categoryName": "category3",
+    "image": "https://www.butteredsideupblog.com/iced-matcha-latte-recipe/",
+    "title": "Fraped Mocha",
+    "soldCount": 0,
+    "price": 2.5,
+    "createdAt": "2025-01-19T16:25:01.629Z",
+    "updatedAt": "2025-01-19T16:25:01.629Z"
+  },
+  {
+    "id": 9,
+    "categoryId": 4,
+    "categoryName": "category1",
+    "image": "https://www.butteredsideupblog.com/iced-matcha-latte-recipe/",
+    "title": "Ice Americano",
+    "soldCount": 0,
+    "price": 5,
+    "createdAt": "2025-01-20T07:05:41.542Z",
+    "updatedAt": "2025-01-20T07:05:41.542Z"
+  },
+  {
+    "id": 10,
+    "categoryId": 7,
+    "categoryName": "category3",
+    "image": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTxcBTpeRlzcg-8sImI1TB1z-9nep7GLgWU8Q&s",
+    "title": "Milk tea",
+    "soldCount": 0,
+    "price": "4.66",
+    "createdAt": "2025-01-20T07:07:25.350Z",
+    "updatedAt": "2025-01-20T19:38:40.335Z",
+    "size": "S, M, L",
+    "sugar": "30%, 50%, 70%, 100%",
+    "toppings": [
+      "apple"
+    ]
+  },
+  {
+    "id": 11,
+    "categoryId": 7,
+    "categoryName": "category3",
+    "image": "https://www.butteredsideupblog.com/iced-matcha-latte-recipe/",
+    "title": "Green Tea",
+    "soldCount": 0,
+    "price": 2.5,
+    "size": "S, M, L",
+    "sugar": "None",
+    "toppings": [
+      "None"
+    ],
+    "createdAt": "2025-01-20T07:21:49.394Z",
+    "updatedAt": "2025-01-20T20:16:43.045Z"
+  },
+  {
+    "id": 13,
+    "categoryId": "5",
+    "categoryName": "category1",
+    "image": "https://www.google.com/url?sa=i&url=https%3A%2F%2Fwww.mommyhatescooking.com%2Feasy-iced-mocha&psig=AOvVaw0r0k1B3F8NGJhEidxLdwYD&ust=1737389195844000&source=images&cd=vfe&opi=89978449&ved=0CBQQjRxqFwoTCNiwq6CVgosDFQAAAAAdAAAAABAE",
+    "title": "lemon tea(edit)",
+    "soldCount": 0,
+    "price": "2.55",
+    "size": "None",
+    "sugar": "30%, 50%, 70%, 100%",
+    "toppings": [
+      "pineapple",
+      "apple",
+      "green apple"
+    ],
+    "createdAt": "2025-01-20T10:28:59.698Z",
+    "updatedAt": "2025-01-20T19:56:57.771Z"
+  },
+  {
+    "id": 14,
+    "categoryId": 4,
+    "categoryName": "category1",
+    "image": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTxcBTpeRlzcg-8sImI1TB1z-9nep7GLgWU8Q&s",
+    "title": "Butterfy Tea",
+    "soldCount": 0,
+    "price": 2,
+    "size": "S, M, L",
+    "sugar": "30%, 50%, 70%, 100%",
+    "toppings": [
+      "mango"
+    ],
+    "createdAt": "2025-01-20T20:19:45.767Z",
+    "updatedAt": "2025-01-20T20:19:45.767Z"
+  }
+]

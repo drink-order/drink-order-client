@@ -1,10 +1,7 @@
-"use client"
+"use client";
 import React, { useState } from "react";
-// import { useNavigate } from "react-router-dom";
 
-const AddNewDrinks = ({ addOrder }) => {
-  // const navigate = useNavigate();
-
+const AddNewDrinks = () => {
   const [drink, setDrink] = useState({
     name: "",
     sugarLevel: "",
@@ -40,9 +37,10 @@ const AddNewDrinks = ({ addOrder }) => {
       paymentStatus,
     };
 
-    // addOrder(order);
-    // setDrinks([]);
-    // navigate("/");
+    console.log("Order submitted:", order);
+    // Reset the form and drinks list
+    setDrinks([]);
+    setPaymentStatus("");
   };
 
   return (

@@ -1,13 +1,17 @@
-import OtpLogin from "../components/OtpLogin";
+'use client'
 
-export default function Home() {
-    return (
-      <main className="text-center">
-        <h1 className="font-bold text-center mb-5">
-          How to Add One-Time Password Phone Authentication
-        </h1>
-        <OtpLogin />
-      </main>
-    );
-  }
-  
+import OtpLogin from "../components/OtpLogin";
+import { useSearchParams } from 'next/navigation';
+import React, { Suspense } from 'react';
+
+const OtpVerificationPage = () => {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+    <div className="flex justify-center items-center min-h-screen bg-gray-100">
+      <OtpLogin />
+    </div>
+    </Suspense>
+  );
+};
+
+export default OtpVerificationPage;
