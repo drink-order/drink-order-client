@@ -7,7 +7,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useToast } from "@/hooks/use-toast";
 
-const phoneRegex = /^\+855\d{8,9}$/;
+const phoneRegex = /^0\d{8,9}$/;
 
 const FormSchema = z
   .object({

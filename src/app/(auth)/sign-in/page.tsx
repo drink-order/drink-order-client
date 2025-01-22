@@ -9,7 +9,7 @@ import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 import { FcGoogle } from 'react-icons/fc';
 
-const phoneRegex = /^\+855\d{8,9}$/;
+const phoneRegex = /^0\d{8,9}$/;
 
 const FormSchema = z.object({
   identifier: z

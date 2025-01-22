@@ -1,11 +1,8 @@
 "use client";
-import { useRouter } from 'next/navigation';
 import React, { useState } from 'react';
 
-export default function EditCategoryForm({ id, nameCategory }) {
+export default function EditCategoryForm({ id, nameCategory, onBack, onUpdate }) {
   const [newName, setNewName] = useState(nameCategory);
-
-  const router = useRouter();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -22,15 +19,11 @@ export default function EditCategoryForm({ id, nameCategory }) {
       if (!res.ok) {
         throw new Error("Failed to update category");
       }
-      router.refresh();
-      router.push('/admin');
+      const updatedCategory = await res.json();
+      onUpdate(updatedCategory);
     } catch (error) {
       console.log(error);
     }
-  };
-
-  const handleBack = () => {
-    router.back();
   };
 
   return (
@@ -43,7 +36,7 @@ export default function EditCategoryForm({ id, nameCategory }) {
         placeholder="Category Name"
       />
       <div className="flex gap-3">
-        <button type="button" onClick={handleBack} className="bg-[#5D4435] font-bold text-white py-3 px-5 w-fit">
+        <button type="button" onClick={onBack} className="bg-[#5D4435] font-bold text-white py-3 px-5 w-fit">
           Back
         </button>
 

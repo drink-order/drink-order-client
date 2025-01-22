@@ -52,7 +52,7 @@ export const getCategoryById = (id) => {
 
 export const createCategory = (newCategory) => {
   currentId += 1; // Increment the counter
-  const categoryWithId = { id: currentId, ...newCategory };
+  const categoryWithId = { id: currentId, ...newCategory, createdAt: new Date(), updatedAt: new Date() };
   categories.push(categoryWithId);
   writeCategoriesToFile(categories); // Persist data to file
   return categoryWithId;
@@ -61,7 +61,7 @@ export const createCategory = (newCategory) => {
 export const updateCategory = (id, updatedCategory) => {
   const index = categories.findIndex(category => category.id === id);
   if (index !== -1) {
-    categories[index] = { ...categories[index], ...updatedCategory };
+    categories[index] = { ...categories[index], ...updatedCategory, updatedAt: new Date() };
     writeCategoriesToFile(categories); // Persist data to file
     return categories[index];
   }

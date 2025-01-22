@@ -2,10 +2,8 @@
 import { useRouter } from 'next/navigation';
 import React, { useState } from 'react';
 
-export default function AddCategory() {
+export default function AddCategory({ onBack, onAdd }) {
   const [nameCategory, setNameCategory] = useState("");
-
-  const router = useRouter();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -24,18 +22,15 @@ export default function AddCategory() {
         body: JSON.stringify({ nameCategory }),
       });
 
-      if (res.ok) {
-        router.push('/admin');
-      } else {
+      if (!res.ok) {
         throw new Error("Failed to create Category");
       }
+
+      const newCategory = await res.json();
+      onAdd(newCategory);
     } catch (error) {
       console.log(error);
     }
-  };
-
-  const handleBack = () => {
-    router.back();
   };
 
   return (
@@ -49,7 +44,7 @@ export default function AddCategory() {
           placeholder="Category Name"
         />
         <div className="flex gap-3">
-          <button type="button" onClick={handleBack} className="bg-[#5D4435] font-bold text-white py-3 px-5 w-fit">
+          <button type="button" onClick={onBack} className="bg-[#5D4435] font-bold text-white py-3 px-5 w-fit">
             Back
           </button>
           <button type="submit" className="bg-[#5D4435] font-bold text-white py-3 px-5 w-fit">
