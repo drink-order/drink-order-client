@@ -5,9 +5,10 @@ import { PiNotificationBold, PiHandWavingBold } from "react-icons/pi";
 import { GiSandsOfTime } from "react-icons/gi";
 import StaffManagement from './components/StaffManagement';
 import ProductManagement from './components/ProductManagement';
+import Overview from './components/Overview';
 
 export default function ShopOwnerDashboard() {
-  const [activeTab, setActiveTab] = useState("staff");
+  const [activeTab, setActiveTab] = useState("overview");
 
   const handleTabChange = (tab) => {
     setActiveTab(tab);
@@ -27,6 +28,19 @@ export default function ShopOwnerDashboard() {
         </div>
         <div className="flex-grow">
           <ul className="space-y-2 p-4">
+            <li>
+              <button
+                className={`w-full flex items-center px-3 py-2 rounded-md ${
+                  activeTab === "overview" ? "bg-yellow-400 text-white" : "text-gray-700 hover:text-white hover:bg-yellow-400"
+                }`}
+                onClick={() => handleTabChange("overview")}
+              >
+                <span className="mr-2">
+                  <FaClipboardCheck />
+                </span>
+                Overview
+              </button>
+            </li>
             <li>
               <button
                 className={`w-full flex items-center px-3 py-2 rounded-md ${
@@ -79,6 +93,7 @@ export default function ShopOwnerDashboard() {
           ,
         </h1>
         <div className="mt-4">
+          {activeTab === "overview" && <div><Overview /></div>}
           {activeTab === "staff" && <div><StaffManagement /></div>}
           {activeTab === "product" && <div><ProductManagement /></div>}
           {activeTab === "profile" && <div>Profile Content</div>}

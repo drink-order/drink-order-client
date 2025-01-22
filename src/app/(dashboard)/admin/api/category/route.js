@@ -8,7 +8,11 @@ import {
 export async function POST(request) {
   try {
     const { nameCategory } = await request.json();
-    const newCategory = { nameCategory }; // Only include nameCategory
+    const newCategory = {
+      nameCategory,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    }; // Include createdAt and updatedAt
     const createdCategory = createCategory(newCategory);
     return NextResponse.json({ message: "Category Created", category: createdCategory }, { status: 201 });
   } catch (error) {

@@ -1,7 +1,6 @@
 'use client'
 
 import OtpLogin from "../components/OtpLogin";
-import { useSearchParams } from 'next/navigation';
 import React, { Suspense } from 'react';
 
 const OtpVerificationPage = () => {

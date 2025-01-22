@@ -5,20 +5,30 @@ import { useRouter } from "next/navigation";
 
 const StaffManagement = () => {
   const router = useRouter();
-
-  // Initial staff members data
-  const [staff, setStaff] = useState([
-    { id: 1, username: "john_doe", email: "john@example.com", phone: "123-456-7890", role: "Manager", createdAt: "2023-01-01", updatedAt: "2023-01-10" },
-    { id: 2, username: "jane_doe", email: "jane@example.com", phone: "098-765-4321", role: "Staff", createdAt: "2023-02-01", updatedAt: "2023-02-10" },
-  ]);
-
+  const [staff, setStaff] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [sortOption, setSortOption] = useState("Oldest");
 
   useEffect(() => {
-    // Sort staff by the initial sort option (Oldest)
-    const sortedStaff = [...staff].sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
-    setStaff(sortedStaff);
+    // Fetch staff members from the API
+    const fetchStaff = async () => {
+      try {
+        const res = await fetch("http://localhost:3000/api/user");
+        if (!res.ok) {
+          throw new Error(`Failed to fetch staff: ${res.statusText}`);
+        }
+        const data = await res.json();
+        // Filter accounts to display only those with the "staff" role
+        const staffMembers = data.filter(user => user.role === "staff");
+        // Sort staff by the initial sort option (Oldest)
+        const sortedStaff = staffMembers.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+        setStaff(sortedStaff);
+      } catch (error) {
+        console.error("Error fetching staff:", error);
+      }
+    };
+
+    fetchStaff();
   }, []);
 
   const handleSortChange = (e) => {
@@ -43,7 +53,7 @@ const StaffManagement = () => {
   };
 
   const filteredStaff = staff.filter((member) =>
-    member.username.toLowerCase().includes(searchTerm.toLowerCase())
+    member.username && member.username.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   return (
