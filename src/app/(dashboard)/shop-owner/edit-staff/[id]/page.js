@@ -1,7 +1,7 @@
 "use client";
 import React, { useState, useEffect } from "react";
 
-const EditAccount = ({ id, onBack, onUpdate, fetchAccounts }) => {
+const EditStaff = ({ id, onBack, onUpdate, fetchAccounts }) => {
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
@@ -85,6 +85,7 @@ const EditAccount = ({ id, onBack, onUpdate, fetchAccounts }) => {
           value={role}
           onChange={(e) => setRole(e.target.value)}
           className="border border-slate-500 px-8 py-2"
+          disabled
         >
           <option value="admin">Admin</option>
           <option value="shop owner">Shop Owner</option>
@@ -105,4 +106,4 @@ const EditAccount = ({ id, onBack, onUpdate, fetchAccounts }) => {
   );
 };
 
-export default EditAccount;
+export default EditStaff;

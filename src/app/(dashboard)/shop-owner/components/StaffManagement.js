@@ -1,33 +1,34 @@
 "use client";
 import React, { useState, useEffect } from "react";
 import { HiSearch } from "react-icons/hi";
-import { useRouter } from "next/navigation";
+import EditStaff from "../edit-staff/[id]/page";
+import AddStaff from "../add-staff/page";
 
 const StaffManagement = () => {
-  const router = useRouter();
   const [staff, setStaff] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [sortOption, setSortOption] = useState("Oldest");
+  const [editingStaff, setEditingStaff] = useState(null);
+  const [addingStaff, setAddingStaff] = useState(false);
+
+  const fetchStaff = async () => {
+    try {
+      const res = await fetch("/api/user");
+      if (!res.ok) {
+        throw new Error(`Failed to fetch staff: ${res.statusText}`);
+      }
+      const data = await res.json();
+      // Filter to get only staff members
+      const staffMembers = data.filter(user => user.role === "staff");
+      // Sort staff by the initial sort option (Oldest)
+      const sortedStaff = staffMembers.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+      setStaff(sortedStaff);
+    } catch (error) {
+      console.error("Error fetching staff:", error);
+    }
+  };
 
   useEffect(() => {
-    // Fetch staff members from the API
-    const fetchStaff = async () => {
-      try {
-        const res = await fetch("http://localhost:3000/api/user");
-        if (!res.ok) {
-          throw new Error(`Failed to fetch staff: ${res.statusText}`);
-        }
-        const data = await res.json();
-        // Filter accounts to display only those with the "staff" role
-        const staffMembers = data.filter(user => user.role === "staff");
-        // Sort staff by the initial sort option (Oldest)
-        const sortedStaff = staffMembers.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
-        setStaff(sortedStaff);
-      } catch (error) {
-        console.error("Error fetching staff:", error);
-      }
-    };
-
     fetchStaff();
   }, []);
 
@@ -44,17 +45,53 @@ const StaffManagement = () => {
     setStaff(sortedStaff);
   };
 
-  const handleDelete = (id) => {
-    setStaff(staff.filter(member => member.id !== id));
+  const handleDelete = async (id) => {
+    try {
+      const res = await fetch(`/api/user/${id}`, {
+        method: "DELETE",
+      });
+      if (!res.ok) {
+        throw new Error("Failed to delete staff");
+      }
+      setStaff(staff.filter(member => member.id !== id));
+      fetchStaff(); // Refresh the staff list
+    } catch (error) {
+      console.error("Error deleting staff:", error);
+    }
   };
 
-  const handleEdit = (id) => {
-    router.push(`/shop-owner/edit-staff/${id}`);
+  const handleEdit = (member) => {
+    setEditingStaff(member);
+  };
+
+  const handleBack = () => {
+    setEditingStaff(null);
+    setAddingStaff(false);
+  };
+
+  const handleUpdate = (updatedMember) => {
+    setStaff(staff.map(member => member.id === updatedMember.id ? updatedMember : member));
+    setEditingStaff(null);
+    fetchStaff(); // Refresh the staff list
+  };
+
+  const handleAdd = (newMember) => {
+    setStaff([...staff, newMember]);
+    setAddingStaff(false);
+    fetchStaff(); // Refresh the staff list
   };
 
   const filteredStaff = staff.filter((member) =>
     member.username && member.username.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  if (editingStaff) {
+    return <EditStaff id={editingStaff.id} onBack={handleBack} onUpdate={handleUpdate} fetchAccounts={fetchStaff} />;
+  }
+
+  if (addingStaff) {
+    return <AddStaff onBack={handleBack} onAdd={handleAdd} fetchAccounts={fetchStaff} />;
+  }
 
   return (
     <div className="p-4">
@@ -88,7 +125,7 @@ const StaffManagement = () => {
             </div>
             {/* Add New Staff Button */}
             <button
-              onClick={() => router.push("/shop-owner/add-staff")}
+              onClick={() => setAddingStaff(true)}
               className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600"
             >
               Add New Staff
@@ -123,7 +160,7 @@ const StaffManagement = () => {
               <td className="p-2 border">{new Date(member.updatedAt).toLocaleDateString()}</td>
               <td className="p-2 border">
                 <button
-                  onClick={() => handleEdit(member.id)}
+                  onClick={() => handleEdit(member)}
                   className="bg-yellow-400 text-white hover:bg-yellow-500 hover:text-white border px-4 py-1 rounded mr-2"
                 >
                   Edit
