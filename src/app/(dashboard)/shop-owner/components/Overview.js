@@ -8,15 +8,16 @@ const Overview = () => {
   const [timeFrame, setTimeFrame] = useState("day");
 
   useEffect(() => {
-    // Fetch staff count from the API
+    // Fetch all users and filter to get staff count
     const fetchStaffCount = async () => {
       try {
-        const res = await fetch("http://localhost:3000/shop-owner/api/staff-count");
+        const res = await fetch("/api/user");
         if (!res.ok) {
-          throw new Error(`Failed to fetch staff count: ${res.statusText}`);
+          throw new Error(`Failed to fetch users: ${res.statusText}`);
         }
         const data = await res.json();
-        setStaffCount(data.count);
+        const staffMembers = data.filter(user => user.role === "staff");
+        setStaffCount(staffMembers.length);
       } catch (error) {
         console.error("Error fetching staff count:", error);
       }
@@ -39,7 +40,7 @@ const Overview = () => {
     // Fetch total orders based on the selected time frame
     const fetchTotalOrders = async () => {
       try {
-        const res = await fetch(`http://localhost:3000/shop-owner/api/total-orders?timeFrame=${timeFrame}`);
+        const res = await fetch(`/api/total-orders?timeFrame=${timeFrame}`);
         if (!res.ok) {
           throw new Error(`Failed to fetch total orders: ${res.statusText}`);
         }
