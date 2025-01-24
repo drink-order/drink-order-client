@@ -3,11 +3,11 @@ import React, { useState } from "react";
 import { FaClipboardCheck, FaCoffee } from "react-icons/fa";
 import { PiNotificationBold, PiHandWavingBold } from "react-icons/pi";
 import { GiSandsOfTime } from "react-icons/gi";
-import StaffManagement from './components/StaffManagement';
-import ProductManagement from './components/ProductManagement';
-import Overview from './components/Overview';
+import StaffManagement from '../../components/StaffManagement';
+import ProductManagement from '../../components/ProductManagement';
+import Overview from '../../components/Overview';
 
-export default function ShopOwnerDashboard() {
+const ShopOwnerDashboard = () => {
   const [activeTab, setActiveTab] = useState("overview");
 
   const handleTabChange = (tab) => {
@@ -101,4 +101,6 @@ export default function ShopOwnerDashboard() {
       </div>
     </div>
   );
-}
+};
+
+export default ShopOwnerDashboard;

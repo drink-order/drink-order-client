@@ -1,12 +1,16 @@
 "use client";
 import React, { useState, useEffect } from "react";
+import { useRouter, useSearchParams } from 'next/navigation';
 
-const EditStaff = ({ id, onBack, onUpdate, fetchAccounts }) => {
+const EditStaff = () => {
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [role, setRole] = useState("user");
   const [error, setError] = useState(null);
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const id = searchParams.get('id');
 
   useEffect(() => {
     // Fetch the account details
@@ -27,7 +31,9 @@ const EditStaff = ({ id, onBack, onUpdate, fetchAccounts }) => {
       }
     };
 
-    fetchAccount();
+    if (id) {
+      fetchAccount();
+    }
   }, [id]);
 
   const handleSubmit = async (e) => {
@@ -48,12 +54,16 @@ const EditStaff = ({ id, onBack, onUpdate, fetchAccounts }) => {
       }
 
       const updatedAccount = await res.json();
-      onUpdate(updatedAccount);
-      fetchAccounts(); // Refresh the account list
+      // Optionally, you can redirect or show a success message here
+      router.push('/shop-owner'); // Redirect to shop-owner page after updating account
     } catch (error) {
       console.error("Error updating account:", error);
       setError(error.message || "An error occurred while updating the account.");
     }
+  };
+
+  const handleBack = () => {
+    router.back();
   };
 
   return (
@@ -93,7 +103,7 @@ const EditStaff = ({ id, onBack, onUpdate, fetchAccounts }) => {
           <option value="user">User</option>
         </select>
         <div className="flex gap-3">
-          <button type="button" onClick={onBack} className="bg-[#5D4435] font-bold text-white py-3 px-5 w-fit">
+          <button type="button" onClick={handleBack} className="bg-[#5D4435] font-bold text-white py-3 px-5 w-fit">
             Back
           </button>
           <button type="submit" className="bg-[#5D4435] font-bold text-white py-3 px-5 w-fit">
