@@ -1,13 +1,15 @@
 "use client";
 import React, { useState } from "react";
+import { useRouter } from 'next/navigation';
 
-const AddStaff = ({ onBack, onAdd, fetchAccounts }) => {
+const AddStaff = () => {
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [role, setRole] = useState("staff"); // Default role to "staff"
   const [password, setPassword] = useState("");
   const [error, setError] = useState(null);
+  const router = useRouter();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -33,8 +35,8 @@ const AddStaff = ({ onBack, onAdd, fetchAccounts }) => {
       }
 
       const newAccount = await res.json();
-      onAdd(newAccount);
-      fetchAccounts(); // Refresh the account list
+      // Optionally, you can redirect or show a success message here
+      router.push('/shop-owner'); // Redirect to shop-owner page after adding staff
     } catch (error) {
       console.error("Error creating account:", error);
       setError(error.message || "An error occurred while creating the account.");
@@ -74,7 +76,7 @@ const AddStaff = ({ onBack, onAdd, fetchAccounts }) => {
           className="border border-slate-500 px-8 py-2"
         />
         <div className="flex gap-3">
-          <button type="button" onClick={onBack} className="bg-[#5D4435] font-bold text-white py-3 px-5 w-fit">
+          <button type="button" onClick={() => router.back()} className="bg-[#5D4435] font-bold text-white py-3 px-5 w-fit">
             Back
           </button>
           <button type="submit" className="bg-[#5D4435] font-bold text-white py-3 px-5 w-fit">
