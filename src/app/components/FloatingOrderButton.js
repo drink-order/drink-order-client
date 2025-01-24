@@ -8,6 +8,7 @@ const FloatingOrderButton = () => {
   const searchParams = useSearchParams();
   const orderId = searchParams.get('orderId');
   const router = useRouter();
+  const currentPath = router.pathname;
 
   useEffect(() => {
     // Fetch the order status from the API
@@ -33,7 +34,7 @@ const FloatingOrderButton = () => {
     router.push(`/OrderSuc?orderId=${orderId}`);
   };
 
-  if (orderStatus === 'PickedUp') {
+  if (orderStatus === 'PickedUp' || currentPath !== '/specific-page') {
     return null;
   }
 
