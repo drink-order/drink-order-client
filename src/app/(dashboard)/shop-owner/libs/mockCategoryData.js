@@ -32,3 +32,7 @@ let categories = readCategoriesFromFile();
 export const getCategories = () => {
   return categories;
 };
+
+export const getCategoryById = (id) => {
+  return categories.find((category) => category.id === id);
+};
