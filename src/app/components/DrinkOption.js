@@ -1,109 +1,98 @@
-"use client";
 import React, { useState } from "react";
 
-const DrinkOption = () => {
-    // State to keep track of the selected options
-    const [selectedSize, setSelectedSize] = useState(null);
-    const [selectedSugar, setSelectedSugar] = useState(null);
-    const [selectedTopping, setSelectedTopping] = useState(null);
+const DrinkOption = ({ sizeOptions, sugarOptions, toppingOptions, onOptionChange }) => {
+  const [selectedSize, setSelectedSize] = useState("");
+  const [selectedSugar, setSelectedSugar] = useState("");
+  const [selectedToppings, setSelectedToppings] = useState([]);
 
-    // Function to handle button clicks
-    const handleSelection = (event, group) => {
-        const selectedValue = event.target.textContent;
+  const handleSizeChange = (size) => {
+    setSelectedSize(size);
+    onOptionChange({ size, sugar: selectedSugar, toppings: selectedToppings });
+  };
 
-        // Update state based on the clicked group
-        switch (group) {
-            case "size":
-                setSelectedSize(selectedValue);
-                break;
-            case "sugar":
-                setSelectedSugar(selectedValue);
-                break;
-            case "topping":
-                setSelectedTopping(selectedValue);
-                break;
-            default:
-                break;
-        }
-    };
+  const handleSugarChange = (sugar) => {
+    setSelectedSugar(sugar);
+    onOptionChange({ size: selectedSize, sugar, toppings: selectedToppings });
+  };
 
-    // Function to check if an option is selected
-    const isSelected = (group, value) => {
-        switch (group) {
-            case "size":
-                return selectedSize === value;
-            case "sugar":
-                return selectedSugar === value;
-            case "topping":
-                return selectedTopping === value;
-            default:
-                return false;
-        }
-    };
+  const handleToppingChange = (topping) => {
+    const newToppings = selectedToppings.includes(topping)
+      ? selectedToppings.filter((t) => t !== topping)
+      : [...selectedToppings, topping];
+    setSelectedToppings(newToppings);
+    onOptionChange({ size: selectedSize, sugar: selectedSugar, toppings: newToppings });
+  };
 
-    return (
-        <div className="font-sans p-6 max-w-[400px] mx-auto">
-            {/* Size Options */}
-            <div className="mb-6">
-                <label className="block font-bold mb-2">Size</label>
-                <div className="flex gap-2 justify-left">
-                    {["S", "M", "L"].map((size) => (
-                        <button
-                            key={size}
-                            className={`w-14 py-2 border-2 rounded-lg cursor-pointer text-sm transition-all 
-                                ${isSelected("size", size)
-                                    ? "text-[#5D4435] bg-[#fcefe6] border-[#f39c12] font-bold"
-                                    : "border-[#ccc] bg-white"
-                                }`}
-                            onClick={(e) => handleSelection(e, "size")}
-                        >
-                            {size}
-                        </button>
-                    ))}
-                </div>
-            </div>
+  // Filter out options with value "none"
+  const filteredSizeOptions = sizeOptions.filter(option => option.toLowerCase() !== "none");
+  const filteredSugarOptions = sugarOptions.filter(option => option.toLowerCase() !== "none");
+  const filteredToppingOptions = toppingOptions.filter(option => option.toLowerCase() !== "none");
 
-            {/* Sugar Options */}
-            <div className="mb-6">
-                <label className="block font-bold mb-2">Sugar</label>
-                <div className="flex gap-2 justify-left">
-                    {["30%", "50%", "70%", "100%"].map((sugar) => (
-                        <button
-                            key={sugar}
-                            className={`w-14 py-2 border-2 rounded-lg cursor-pointer text-sm transition-all ${
-                                isSelected("sugar", sugar)
-                                    ? "text-[#5D4435] bg-[#fcefe6] border-[#f39c12] font-bold"
-                                    : "border-[#ccc] bg-white"
-                            }`}
-                            onClick={(e) => handleSelection(e, "sugar")}
-                        >
-                            {sugar}
-                        </button>
-                    ))}
-                </div>
-            </div>
-
-            {/* Topping Options */}
-            <div className="mb-6">
-                <label className="block font-bold mb-2">Topping</label>
-                <div className="flex gap-4 mb-2 justify-left">
-                    {["Boba", "RedBeans", "Jelly", "Pearl"].map((topping, index) => (
-                        <button
-                            key={index}
-                            className={`w-20 py-2 border-2 rounded-lg cursor-pointer text-sm transition-all ${
-                                isSelected("topping", topping)
-                                    ? "text-[#5D4435] bg-[#fcefe6] border-[#f39c12] font-bold"
-                                    : "border-gray4 bg-white"
-                            }`}
-                            onClick={(e) => handleSelection(e, "topping")}
-                        >
-                            {topping}
-                        </button>
-                    ))}
-                </div>
-            </div>
+  return (
+    <div className="mt-4">
+      {/* Size Options */}
+      {filteredSizeOptions.length > 0 && (
+        <div className="mb-4">
+          <h3 className="text-lg font-semibold">Size</h3>
+          <div className="flex space-x-2">
+            {filteredSizeOptions.map((size, index) => (
+              <button
+                key={index}
+                className={`px-3 py-1 border rounded-full ${
+                  selectedSize === size ? "bg-yellow-600 text-white" : ""
+                }`}
+                onClick={() => handleSizeChange(size)}
+              >
+                {size}
+              </button>
+            ))}
+          </div>
         </div>
-    );
+      )}
+
+      {/* Sugar Options */}
+      {filteredSugarOptions.length > 0 && (
+        <div className="mb-4">
+          <h3 className="text-lg font-semibold">Sugar Level</h3>
+          <div className="flex space-x-2">
+            {filteredSugarOptions.map((sugar, index) => (
+              <button
+                key={index}
+                className={`px-3 py-1 border rounded-full ${
+                  selectedSugar === sugar ? "bg-yellow-600 text-white" : ""
+                }`}
+                onClick={() => handleSugarChange(sugar)}
+              >
+                {sugar}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Topping Options */}
+      {filteredToppingOptions.length > 0 && (
+        <div className="mb-4">
+          <h3 className="text-lg font-semibold">Toppings</h3>
+          <div className="flex space-x-2">
+            {filteredToppingOptions.map((topping, index) => (
+              <button
+                key={index}
+                className={`px-3 py-1 border rounded-full ${
+                  selectedToppings.includes(topping)
+                    ? "bg-yellow-600 text-white"
+                    : ""
+                }`}
+                onClick={() => handleToppingChange(topping)}
+              >
+                {topping}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
 };
 
 export default DrinkOption;

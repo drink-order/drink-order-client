@@ -14,7 +14,7 @@ const SuccessAnimate = ({ width = '200px', height = '200px' }) => {
       </div>
       <div style={{ fontFamily: 'Arial, sans-serif', color: '#333' }}>
         <h2 style={{ fontSize: '20px', margin: '10px 0', fontWeight: 'normal' }}>Hey Dear,</h2>
-        <h1 style={{ fontSize: '24px', margin: '10px 0', fontWeight: 'bold' }}>Your Order is Confirmed!</h1>
+        <h1 style={{ fontSize: '24px', margin: '10px 0', fontWeight: 'bold' }}>Order Successful!</h1>
         <p style={{ fontSize: '16px', margin: '10px 0', color: '#666' }}>
           Keep track of the order status, we will send you a notification when the order is ready to serve.
         </p>

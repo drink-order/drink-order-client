@@ -1,30 +1,3 @@
-// "use client";
-
-// import React from 'react';
-// import OrderSummary from '../components/OrderSummary';
-// import OrderInfo from '../components/OrderInfo';
-
-// export const Page = () => {
-//   const handleCheckout = () => {
-//     // Logic for checkout functionality
-//     alert('Proceeding to Checkout!');
-//   };
-
-//   return (
-//     <div className="p-4">
-//       <OrderSummary />
-//       <OrderInfo />
-//       <button
-//         onClick={handleCheckout}
-//         className="mt-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
-//       >
-//         Checkout
-//       </button>
-//     </div>
-//   );
-// };
-
-// export default Page;
 "use client";
 
 import React, { useState } from 'react';
