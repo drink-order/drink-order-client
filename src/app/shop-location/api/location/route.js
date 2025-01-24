@@ -8,10 +8,12 @@ export async function POST(req) {
         return NextResponse.json({ message: 'Latitude and longitude must be numbers.' }, { status: 400 });
     }
 
-    const shopLatitude = 11.55858; // Example shop latitude
-    const shopLongitude = 104.88663; // Example shop longitude
-    const allowedRadius = 1; // 1 km
+    console.log(`User location: Latitude ${latitude}, Longitude ${longitude}`);
 
+    const shopLatitude = 11.5539968; // Example shop latitude
+    const shopLongitude = 104.9034752; // Example shop longitude
+    const allowedRadius = 1; // 1 km
+    
     const distance = haversine(shopLatitude, shopLongitude, latitude, longitude);
 
     if (distance <= allowedRadius) {

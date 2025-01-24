@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { mockCategories } from '../../../lib/mockData/mockCategories';
+import { getDrinkById } from '../../../(dashboard)/shop-owner/libs/mockDrinksData';
 
 export async function GET(request, { params }) {
   const { id } = params; // Extract the dynamic 'id' from the route
@@ -10,12 +10,8 @@ export async function GET(request, { params }) {
   // Convert `id` to a number for comparison
   const numericId = parseInt(id, 10);
 
-  // Search for the drink across all categories
-  let drink = null;
-  for (const category of mockCategories) {
-    drink = category.content.find(item => item.id === numericId);
-    if (drink) break;
-  }
+  // Get the drink by ID
+  const drink = getDrinkById(numericId);
 
   if (!drink) {
     return NextResponse.json({ error: 'Drink not found' }, { status: 404 });

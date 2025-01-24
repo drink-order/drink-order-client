@@ -5,7 +5,7 @@ import NavBar from "./NavBar";
 
 export default function NavBarWrapper() {
   const pathname = usePathname();
-  const showRoutes = ["/", "/order", "/notification", "/account"];
+  const showRoutes = ["/", "/order", "/notification", "/account", "/OrderSuc"];
   const isShowRoute = showRoutes.includes(pathname);
 
   if (!isShowRoute) return null; // Don't render NavBar for auth routes

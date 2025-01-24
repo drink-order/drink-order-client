@@ -1,27 +1,25 @@
 "use client";
 
-import React, { useState } from "react";
+import React from "react";
 import { MdRemove, MdAdd } from "react-icons/md"; // Import icons
 
-const CounterInput = ({ initialValue = 1, min = 1, max = 100 }) => {
-  const [value, setValue] = useState(initialValue);
-
+const CounterInput = ({ value = 1, onChange, min = 1, max = 100 }) => {
   const handleDecrement = () => {
     if (value > min) {
-      setValue(value - 1);
+      onChange(value - 1);
     }
   };
 
   const handleIncrement = () => {
     if (value < max) {
-      setValue(value + 1);
+      onChange(value + 1);
     }
   };
 
   const handleChange = (e) => {
     const newValue = parseInt(e.target.value, 10);
     if (!isNaN(newValue) && newValue >= min && newValue <= max) {
-      setValue(newValue);
+      onChange(newValue);
     }
   };
 
