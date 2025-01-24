@@ -2,8 +2,10 @@
 import { useRouter } from 'next/navigation';
 import React, { useState } from 'react';
 
-export default function AddCategory({ onBack, onAdd }) {
+const AddCategory = () => {
   const [nameCategory, setNameCategory] = useState("");
+  const [error, setError] = useState(null);
+  const router = useRouter();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -14,7 +16,7 @@ export default function AddCategory({ onBack, onAdd }) {
     }
 
     try {
-      const res = await fetch('http://localhost:3000/admin/api/category', {
+      const res = await fetch('/api/category', {
         method: "POST",
         headers: {
           "Content-type": "application/json"
@@ -27,9 +29,11 @@ export default function AddCategory({ onBack, onAdd }) {
       }
 
       const newCategory = await res.json();
-      onAdd(newCategory);
+      // Optionally, you can redirect or show a success message here
+      router.push('/admin'); // Redirect to admin page after adding category
     } catch (error) {
-      console.log(error);
+      console.error("Error creating category:", error);
+      setError(error.message || "An error occurred while creating the category.");
     }
   };
 
@@ -44,7 +48,7 @@ export default function AddCategory({ onBack, onAdd }) {
           placeholder="Category Name"
         />
         <div className="flex gap-3">
-          <button type="button" onClick={onBack} className="bg-[#5D4435] font-bold text-white py-3 px-5 w-fit">
+          <button type="button" onClick={() => router.back()} className="bg-[#5D4435] font-bold text-white py-3 px-5 w-fit">
             Back
           </button>
           <button type="submit" className="bg-[#5D4435] font-bold text-white py-3 px-5 w-fit">
@@ -52,6 +56,9 @@ export default function AddCategory({ onBack, onAdd }) {
           </button>
         </div>
       </form>
+      {error && <div className="text-red-500 mt-2">{error}</div>}
     </div>
   );
-}
+};
+
+export default AddCategory;
