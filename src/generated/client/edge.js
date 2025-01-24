@@ -163,7 +163,7 @@ const config = {
       "value": "prisma-client-js"
     },
     "output": {
-      "value": "/Users/hcpshop/Documents/Drink-Ordering-Website/src/generated/client",
+      "value": "D:\\WCT\\Drink-Ordering-Website\\src\\generated\\client",
       "fromEnvVar": null
     },
     "config": {
@@ -172,12 +172,12 @@ const config = {
     "binaryTargets": [
       {
         "fromEnvVar": null,
-        "value": "darwin-arm64",
+        "value": "windows",
         "native": true
       }
     ],
     "previewFeatures": [],
-    "sourceFilePath": "/Users/hcpshop/Documents/Drink-Ordering-Website/prisma/schema.prisma",
+    "sourceFilePath": "D:\\WCT\\Drink-Ordering-Website\\prisma\\schema.prisma",
     "isCustomOutput": true
   },
   "relativeEnvPaths": {
@@ -191,7 +191,7 @@ const config = {
     "db"
   ],
   "activeProvider": "postgresql",
-  "postinstall": true,
+  "postinstall": false,
   "inlineDatasources": {
     "db": {
       "url": {
