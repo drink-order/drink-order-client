@@ -15,9 +15,15 @@ const userUpdateSchema = z.object({
     }),
 });
 
-export async function GET(req: Request, { params }: { params: { id: string } }) {
+export async function GET(req: Request) {
   try {
-    const { id } = params;
+    const { pathname } = new URL(req.url);
+    const id = pathname.split('/').pop(); // Extract the `id` from the URL
+
+    if (!id) {
+      return NextResponse.json({ message: "User ID is required" }, { status: 400 });
+    }
+
     const user = await db.user.findUnique({
       where: { id },
       select: {
@@ -44,9 +50,15 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
   }
 }
 
-export async function PUT(req: Request, { params }: { params: { id: string } }) {
+export async function PUT(req: Request) {
   try {
-    const { id } = params;
+    const { pathname } = new URL(req.url);
+    const id = pathname.split('/').pop(); // Extract the `id` from the URL
+
+    if (!id) {
+      return NextResponse.json({ message: "User ID is required" }, { status: 400 });
+    }
+
     const body = await req.json();
     const { username, email, phone, role } = userUpdateSchema.parse(body);
 
@@ -73,9 +85,14 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
   }
 }
 
-export async function DELETE(req: Request, { params }: { params: { id: string } }) {
+export async function DELETE(req: Request) {
   try {
-    const { id } = params;
+    const { pathname } = new URL(req.url);
+    const id = pathname.split('/').pop(); // Extract the `id` from the URL
+
+    if (!id) {
+      return NextResponse.json({ message: "User ID is required" }, { status: 400 });
+    }
 
     const deletedUser = await db.user.delete({
       where: { id },
