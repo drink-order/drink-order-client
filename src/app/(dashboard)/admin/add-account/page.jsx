@@ -1,5 +1,5 @@
 "use client";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useRouter } from 'next/navigation';
 
 const AddAccount = () => {
@@ -42,6 +42,14 @@ const AddAccount = () => {
       setError(error.message || "An error occurred while creating the account.");
     }
   };
+
+  // useEffect for side effects like error display
+  useEffect(() => {
+    if (error) {
+      // You can show a toast notification, log the error, etc.
+      console.error("Error occurred:", error);
+    }
+  }, [error]);  // This will run whenever the `error` state changes
 
   return (
     <div className="p-4">
