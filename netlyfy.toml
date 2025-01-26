@@ -1,2 +1,5 @@
-[build]
-  command = "CI= npm run build"
+[[redirects]]
+  from = "/old-path/*"
+  to = "/new-path/:splat"
+  status = 301
+  force = true

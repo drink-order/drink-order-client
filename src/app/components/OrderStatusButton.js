@@ -1,50 +1,66 @@
-"use client";
+import React, { useState, useEffect } from 'react';
 
-import React, { useEffect, useState } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
-
-const FloatingOrderButton = () => {
-  const [orderStatus, setOrderStatus] = useState(null);
-  const searchParams = useSearchParams();
-  const orderId = searchParams.get('orderId');
-  const router = useRouter();
+const OrderStatusButton = ({ orderId }) => {
+  const [status, setStatus] = useState('Preparing'); // Default status
+  const [error, setError] = useState(null);
 
   useEffect(() => {
-    // Fetch the order status from the API
+    // Store orderId in local storage
+    if (orderId) {
+      localStorage.setItem('orderId', orderId);
+    }
+
+    // Retrieve orderId from local storage if not provided as a prop
+    const storedOrderId = orderId || localStorage.getItem('orderId');
+
+    // Fetch the current status of the order when the component mounts
     const fetchOrderStatus = async () => {
       try {
-        const response = await fetch(`/api/orders?orderId=${orderId}`);
+        console.log(`Fetching order status for orderId: ${storedOrderId}`);
+        const response = await fetch(`/api/orders?orderId=${storedOrderId}`);
         if (!response.ok) {
-          throw new Error('Failed to fetch order status');
+          const errorText = await response.text();
+          throw new Error(`Failed to fetch order status: ${response.statusText} - ${errorText}`);
         }
         const data = await response.json();
-        setOrderStatus(data.status);
+        console.log('Order status fetched:', data);
+        setStatus(data.status);
       } catch (error) {
         console.error('Error fetching order status:', error);
+        setError('Failed to fetch order status');
       }
     };
 
-    if (orderId) {
+    if (storedOrderId) {
       fetchOrderStatus();
+    } else {
+      setError('Invalid order ID');
     }
   }, [orderId]);
 
-  const handleNavigateToOrderSuc = () => {
-    router.push(`/OrderSuc?orderId=${orderId}`);
-  };
-
-  if (orderStatus === 'PickedUp') {
-    return null;
+  if (error) {
+    return <div style={{ color: 'red', textAlign: 'center' }}>{error}</div>;
   }
 
   return (
-    <button
-      onClick={handleNavigateToOrderSuc}
-      className="fixed bottom-32 right-16 bg-yellow-600 text-white px-4 py-2 rounded-full hover:bg-yellow-700"
-    >
-      View Order
-    </button>
+    <div style={{ padding: '20px', fontFamily: 'Arial, sans-serif', textAlign: 'center' }}>
+      <button
+        style={{
+          padding: '15px 30px',
+          fontSize: '18px',
+          backgroundColor: status === 'Ready to Pickup' ? 'green' : status === 'Pickedup' ? 'blue' : 'orange',
+          color: 'white',
+          border: 'none',
+          borderRadius: '5px',
+          cursor: 'default',
+          transition: 'background-color 0.3s',
+        }}
+        disabled
+      >
+        {status}
+      </button>
+    </div>
   );
 };
 
-export default FloatingOrderButton;
+export default OrderStatusButton;

@@ -10,9 +10,9 @@ export async function POST(req) {
 
     console.log(`User location: Latitude ${latitude}, Longitude ${longitude}`);
 
-    const shopLatitude = 11.5539968; // Example shop latitude
-    const shopLongitude = 104.9034752; // Example shop longitude
-    const allowedRadius = 1; // 1 km
+    const shopLatitude = 11.5749367; // Example shop latitude
+    const shopLongitude = 104.8958275; // Example shop longitude
+    const allowedRadius = 3; // 1 km
     
     const distance = haversine(shopLatitude, shopLongitude, latitude, longitude);
 
