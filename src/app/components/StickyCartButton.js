@@ -8,8 +8,8 @@ import { getSession } from 'next-auth/react';
 import CardBox from './CardBox';
 
 const StickyCartButton = () => {
-  const { cart, total, removeFromCart, setCart } = useCart();
-  const { addOrder } = useOrder();
+  const { cart, total, removeFromCart, setCart, addToCart, calculateTotal } = useCart();
+  const { addOrder, getLatestOrderId } = useOrder();
   const [showCartModal, setShowCartModal] = useState(false);
   const cartModalRef = useRef(null);
   const [userId, setUserId] = useState(null);
@@ -43,7 +43,13 @@ const StickyCartButton = () => {
     fetchSession();
   }, []);
 
-  const handleQuantityChange = (item, newQuantity) => {
+  useEffect(() => {
+    if (cart.length === 0) {
+      setShowCartModal(false); // Close the modal if the cart is empty
+    }
+  }, [cart]);
+
+  const handleQuantityChange = async (item, newQuantity) => {
     setCart((prevCart) => {
       const updatedCart = prevCart.map((cartItem) => {
         if (cartItem.id === item.id) {
@@ -54,23 +60,54 @@ const StickyCartButton = () => {
       calculateTotal(updatedCart);
       return updatedCart;
     });
+
+    // Call the API to persist the change
+    try {
+      await fetch('/api/tocart', {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ userId, itemId: item.id, quantity: newQuantity }),
+      });
+    } catch (error) {
+      console.error('Error updating cart:', error);
+    }
   };
 
-  const handleRemoveItem = async (item) => {
+  const handleRemoveItem = async (itemId) => {
     try {
-      await removeFromCart(item);
+      await removeFromCart(itemId); // Call the removeFromCart function to update the UI
+      setCart((prevCart) => {
+        const updatedCart = prevCart.filter((cartItem) => cartItem.id !== itemId);
+        calculateTotal(updatedCart);
+        return updatedCart;
+      });
     } catch (error) {
       console.error('Error deleting item:', error);
     }
   };
 
   const handleCheckout = async () => {
-    const newOrderId = await addOrder(userId, cart);
-    if (newOrderId) {
-      setCart([]); // Clear the cart
-      router.push(`/OrderSuc?orderId=${newOrderId}`);
+    try {
+      const orderId = await addOrder(userId, cart); // Get the generated orderId directly from addOrder
+      if (orderId) {
+        // Call the API to delete all items from the cart
+        await fetch(`/api/tocart?userId=${userId}`, {
+          method: 'DELETE',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        });
+  
+        setCart([]); // Clear the cart
+        calculateTotal([]);
+        router.push(`/OrderSuc?orderId=${orderId}`); // Use the same orderId here
+      }
+    } catch (error) {
+      console.error('Error placing order:', error);
     }
-  };
+  };  
 
   return (
     <div>
@@ -104,13 +141,14 @@ const StickyCartButton = () => {
               {cart && cart.map((item, index) => (
                 <li key={`${item.id}-${index}`} className="mb-2">
                   <CardBox
+                    id={item.id}
                     name={item.title}
                     description={`Size: ${item.size}, Sugar: ${item.sugar}, Toppings: ${Array.isArray(item.toppings) ? item.toppings.join(', ') : ''}`}
                     price={item.price}
                     originalPrice={item.originalPrice || item.price}
                     image={item.image}
                     quantity={item.quantity}
-                    onRemove={() => handleRemoveItem(item)}
+                    onRemove={handleRemoveItem}
                     onQuantityChange={(newQuantity) => handleQuantityChange(item, newQuantity)}
                   />
                 </li>
