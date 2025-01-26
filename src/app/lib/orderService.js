@@ -1,5 +1,6 @@
 import fs from 'fs';
 import path from 'path';
+import { v4 as uuidv4 } from 'uuid';
 
 const dataDirPath = path.join(process.cwd(), 'data');
 
@@ -15,74 +16,69 @@ const ensureUserDataFileExists = (userId) => {
   if (!userId) {
     throw new Error('User ID is required');
   }
-  const userFilePath = path.join(dataDirPath, `${userId}_orders.json`);
+  const userFilePath = path.join(dataDirPath, `${userId}_cart.json`);
   if (!fs.existsSync(userFilePath)) {
     fs.writeFileSync(userFilePath, JSON.stringify([]), 'utf8');
   }
   return userFilePath;
 };
 
-// Read orders from file for a specific user
-const readOrdersFromFile = (userId) => {
+// Read cart from file for a specific user
+const readCartFromFile = (userId) => {
   try {
     ensureDataDirExists();
     const userFilePath = ensureUserDataFileExists(userId);
     const data = fs.readFileSync(userFilePath, 'utf8');
     return JSON.parse(data);
   } catch (error) {
-    console.error('Error reading orders from file:', error);
+    console.error('Error reading cart from file:', error);
     return [];
   }
 };
 
-// Write orders to file for a specific user
-const writeOrdersToFile = (userId, orders) => {
+// Write cart to file for a specific user
+const writeCartToFile = (userId, cart) => {
   try {
     const userFilePath = ensureUserDataFileExists(userId);
-    fs.writeFileSync(userFilePath, JSON.stringify(orders, null, 2), 'utf8');
+    fs.writeFileSync(userFilePath, JSON.stringify(cart, null, 2), 'utf8');
   } catch (error) {
-    console.error('Error writing orders to file:', error);
+    console.error('Error writing cart to file:', error);
   }
 };
 
-export const createOrder = (userId, orderData) => {
+export const getCart = (userId) => {
   if (!userId) {
     throw new Error('User ID is required');
   }
-  const orders = readOrdersFromFile(userId);
-  const currentOrderId = orders.length > 0 ? Math.max(...orders.map(o => o.id)) : 0;
-  const newOrder = { id: currentOrderId + 1, ...orderData };
-  orders.push(newOrder);
-  writeOrdersToFile(userId, orders);
-  return newOrder;
+  const cart = readCartFromFile(userId);
+  return cart;
 };
 
-export const getOrders = (userId) => {
+export const addToCart = (userId, orderData) => {
   if (!userId) {
     throw new Error('User ID is required');
   }
-  return readOrdersFromFile(userId);
+  const cart = readCartFromFile(userId);
+  const newItem = { ...orderData, userId, id: uuidv4() };
+  cart.push(newItem);
+  writeCartToFile(userId, cart);
+  return newItem;
 };
 
-export const updateOrder = (userId, orderId, updateData) => {
+export const removeFromCart = (userId, itemId) => {
   if (!userId) {
     throw new Error('User ID is required');
   }
-  const orders = readOrdersFromFile(userId);
-  const orderIndex = orders.findIndex(order => order.id === orderId);
-  if (orderIndex === -1) {
-    throw new Error('Order not found');
-  }
-  orders[orderIndex] = { ...orders[orderIndex], ...updateData };
-  writeOrdersToFile(userId, orders);
-  return orders[orderIndex];
+  let cart = readCartFromFile(userId);
+  cart = cart.filter(item => item.id !== itemId);
+  writeCartToFile(userId, cart);
+  return true;
 };
 
-export const deleteOrder = (userId, orderId) => {
+export const clearCart = (userId) => {
   if (!userId) {
     throw new Error('User ID is required');
   }
-  let orders = readOrdersFromFile(userId);
-  orders = orders.filter(order => order.id !== orderId);
-  writeOrdersToFile(userId, orders);
+  writeCartToFile(userId, []);
+  return true;
 };

@@ -7,7 +7,7 @@ import StaffManagement from './components/StaffManagement';
 import ProductManagement from './components/ProductManagement';
 import Overview from './components/Overview';
 
-export default function ShopOwnerDashboard() {
+const ShopOwnerDashboard = () => {
   const [activeTab, setActiveTab] = useState("overview");
 
   const handleTabChange = (tab) => {
@@ -101,4 +101,6 @@ export default function ShopOwnerDashboard() {
       </div>
     </div>
   );
-}
+};
+
+export default ShopOwnerDashboard;
