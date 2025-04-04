@@ -8,31 +8,12 @@ import OrderStatusButton from '../components/OrderStatusButton';
 const OrderSucPage = () => {
   const searchParams = useSearchParams();
   const orderId = searchParams.get('orderId');
-  const [orderStatus, setOrderStatus] = useState('Preparing'); // Default status
+  const orderStatus = searchParams.get('status') || 'Preparing'; // Default status
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    // Fetch the order status from the API using the orderId
-    const fetchOrderStatus = async () => {
-      try {
-        console.log(`Fetching order status for orderId: ${orderId}`);
-        const response = await fetch(`/api/orders?orderId=${orderId}`);
-        if (!response.ok) {
-          const errorText = await response.text();
-          throw new Error(`Failed to fetch order status: ${response.statusText} - ${errorText}`);
-        }
-        const data = await response.json();
-        console.log('Order status fetched:', data);
-        setOrderStatus(data.status);
-      } catch (error) {
-        console.error('Error fetching order status:', error);
-        setError('Failed to fetch order status');
-      }
-    };
+    if (!orderId) {
 
-    if (orderId) {
-      fetchOrderStatus();
-    } else {
       setError('Invalid order ID');
     }
   }, [orderId]);
@@ -46,6 +27,7 @@ const OrderSucPage = () => {
       <SuccessAnimate />
       <div className="text-center mt-4">
         {orderId && <p className="text-lg mt-2">Your Order ID: {orderId}</p>}
+        {orderStatus && <p className="text-lg mt-2">Order Status: {orderStatus}</p>}
       </div>
       {orderId && <OrderStatusButton orderId={orderId} />}
     </div>

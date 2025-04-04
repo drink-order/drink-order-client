@@ -77,8 +77,8 @@ const ShopOwnerDashboard = () => {
         >
           <img src="./chillguy.jpg" alt="Profile" className="w-10 h-10 rounded-full" />
           <div>
-            <p className="font-bold">Admin</p>
-            <p className="text-sm">Project Manager</p>
+            <p className="font-bold">Shop owner</p>
+            <p className="text-sm">Owner</p>
           </div>
         </button>
       </div>
@@ -86,7 +86,7 @@ const ShopOwnerDashboard = () => {
       {/* Main Content */}
       <div className="flex-grow bg-gray-100 p-4 ml-60 min-h-screen">
         <h1 className="text-lg text-black flex items-center">
-          Hello Admin{" "}
+          Hello Shop Owner{" "}
           <span className="ml-2 p-1">
             <PiHandWavingBold />
           </span>

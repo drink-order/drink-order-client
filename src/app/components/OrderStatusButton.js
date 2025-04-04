@@ -1,7 +1,11 @@
 import React, { useState, useEffect } from 'react';
 
+import { useSearchParams } from 'next/navigation';
+
 const OrderStatusButton = ({ orderId }) => {
-  const [status, setStatus] = useState('Preparing'); // Default status
+  const searchParams = useSearchParams();
+  const statusFromParams = searchParams.get('status') || 'Preparing'; // Default status
+  const [status, setStatus] = useState(statusFromParams);
   const [error, setError] = useState(null);
 
   useEffect(() => {
@@ -13,31 +17,10 @@ const OrderStatusButton = ({ orderId }) => {
     // Retrieve orderId from local storage if not provided as a prop
     const storedOrderId = orderId || localStorage.getItem('orderId');
 
-    // Fetch the current status of the order when the component mounts
-    const fetchOrderStatus = async () => {
-      try {
-        console.log(`Fetching order status for orderId: ${storedOrderId}`);
-        const response = await fetch(`/api/orders?orderId=${storedOrderId}`);
-        if (!response.ok) {
-          const errorText = await response.text();
-          throw new Error(`Failed to fetch order status: ${response.statusText} - ${errorText}`);
-        }
-        const data = await response.json();
-        console.log('Order status fetched:', data);
-        setStatus(data.status);
-      } catch (error) {
-        console.error('Error fetching order status:', error);
-        setError('Failed to fetch order status');
-      }
-    };
-
-    if (storedOrderId) {
-      fetchOrderStatus();
-    } else {
+    if (!storedOrderId) {
       setError('Invalid order ID');
     }
   }, [orderId]);
-
   if (error) {
     return <div style={{ color: 'red', textAlign: 'center' }}>{error}</div>;
   }
