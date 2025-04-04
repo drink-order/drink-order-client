@@ -1,7 +1,8 @@
 import fs from 'fs';
 import path from 'path';
+import { v4 as uuidv4 } from 'uuid';
 
-const ordersFilePath = path.resolve(process.cwd(), 'orders.json');
+const ordersFilePath = path.resolve(process.cwd(), 'data/orders.json');
 
 const readOrdersFromFile = () => {
   if (!fs.existsSync(ordersFilePath)) {
@@ -15,25 +16,20 @@ const writeOrdersToFile = (orders) => {
   fs.writeFileSync(ordersFilePath, JSON.stringify(orders, null, 2));
 };
 
-export const createOrder = (newOrder) => {
+export const createOrder = (userId, orderData) => {
   const orders = readOrdersFromFile();
+  const newOrder = { id: uuidv4(), userId, ...orderData };
   orders.push(newOrder);
   writeOrdersToFile(orders);
   return newOrder;
 };
 
 export const getOrders = (userId) => {
+  if (!userId) {
+    throw new Error('User ID is required');
+  }
   const orders = readOrdersFromFile();
   return orders.filter(order => order.userId === userId);
-};
-
-export const deleteOrderItem = (userId, itemId) => {
-  const orders = readOrdersFromFile();
-  const userOrders = orders.find(order => order.userId === userId);
-  if (userOrders) {
-    userOrders.items = userOrders.items.filter(item => item.id !== itemId);
-    writeOrdersToFile(orders);
-  }
 };
 
 export const getOrderStatus = (orderId) => {
@@ -42,13 +38,30 @@ export const getOrderStatus = (orderId) => {
   return order ? order.status : null;
 };
 
-export const updateOrderStatus = (orderId, status) => {
+export const updateOrder = (userId, orderId, updateData) => {
   const orders = readOrdersFromFile();
-  const order = orders.find(order => order.id === orderId);
-  if (order) {
-    order.status = status;
+  const orderIndex = orders.findIndex(order => order.userId === userId && order.id === orderId);
+  if (orderIndex !== -1) {
+    orders[orderIndex] = { ...orders[orderIndex], ...updateData };
     writeOrdersToFile(orders);
-    return order;
+    return orders[orderIndex];
   }
   return null;
+};
+
+export const deleteOrder = (userId, orderId) => {
+  const orders = readOrdersFromFile();
+  const updatedOrders = orders.filter(order => !(order.userId === userId && order.id === orderId));
+  if (updatedOrders.length === orders.length) {
+    return false; // No order was removed
+  }
+  writeOrdersToFile(updatedOrders);
+  return true;
+};
+
+export const deleteAllOrders = (userId) => {
+  const orders = readOrdersFromFile();
+  const updatedOrders = orders.filter(order => order.userId !== userId);
+  writeOrdersToFile(updatedOrders);
+  return true;
 };

@@ -7,16 +7,31 @@ import { useRouter } from "next/navigation";
 const ReceivedOrder = () => {
   const router = useRouter();
 
-  // Initial orders with default payment status "Unpaid"
-  const [orders, setOrders] = useState([
-    { id: "#001", date: "26/11/24", total: "4.99$", orderStatus: "Preparing", paymentStatus: "Unpaid" },
-    { id: "#002", date: "26/11/24", total: "5.50$", orderStatus: "Preparing", paymentStatus: "Unpaid" },
-  ]);
-
+  const [orders, setOrders] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [sortOption, setSortOption] = useState("Newest");
 
-  // Simulate a trigger that updates the payment status to "Paid"
+  useEffect(() => {
+    // Fetch orders from the API
+    const fetchOrders = async () => {
+      try {
+        const res = await fetch("http://localhost:3000/api/orders", {
+          cache: "no-store",
+        });
+        if (!res.ok) {
+          throw new Error(`Failed to fetch orders: ${res.statusText}`);
+        }
+        const data = await res.json();
+        console.log("Fetched orders:", data); // Debugging log
+        setOrders(data.orders || data); // Directly set the array to state
+      } catch (error) {
+        console.error("Error fetching orders:", error);
+      }
+    };
+
+    fetchOrders();
+  }, []);
+
   const updatePaymentStatus = (id) => {
     setOrders((prevOrders) =>
       prevOrders.map((order) =>
@@ -25,7 +40,6 @@ const ReceivedOrder = () => {
     );
   };
 
-  // Example: Automatically mark payment status as "Paid" for an order after 5 seconds (simulate API call or external logic)
   useEffect(() => {
     const timeout = setTimeout(() => {
       updatePaymentStatus("#001"); // Example: Automatically mark order #001 as "Paid"

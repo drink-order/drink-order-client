@@ -107,7 +107,7 @@ const SignUpForm = () => {
           <input
             id="identifier"
             type="text"
-            placeholder="kimthona@gmail.com or +85512345678"
+            placeholder="kimthona@gmail.com or 012345678"
             {...form.register('identifier')}
             className="mt-1 block w-full p-2 border border-gray-300 rounded-md"
           />

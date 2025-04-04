@@ -1,16 +1,5 @@
 import { NextResponse } from 'next/server';
-import { createOrder, getOrders, updateOrder, deleteOrder } from '../../lib/orderService';
-
-export async function POST(request) {
-  try {
-    const { userId, orderData } = await request.json();
-    const newOrder = await createOrder(userId, orderData);
-    return NextResponse.json(newOrder, { status: 201 });
-  } catch (error) {
-    console.error('Error creating order:', error);
-    return NextResponse.json({ error: 'Failed to create order' }, { status: 500 });
-  }
-}
+import { getCart, addToCart, removeFromCart, clearCart } from '../../lib/orderService';
 
 export async function GET(request) {
   try {
@@ -18,12 +7,25 @@ export async function GET(request) {
     if (!userId) {
       throw new Error('User ID is required');
     }
-    const orders = await getOrders(userId);
-    const total = orders.reduce((acc, order) => acc + order.price * order.quantity, 0);
-    return NextResponse.json({ items: orders, total }, { status: 200 });
+    const cart = getCart(userId);
+    return NextResponse.json({ items: cart }, { status: 200 });
   } catch (error) {
-    console.error('Error fetching orders:', error);
-    return NextResponse.json({ error: 'Failed to fetch orders' }, { status: 500 });
+    console.error('Error fetching cart:', error);
+    return NextResponse.json({ error: 'Failed to fetch cart' }, { status: 500 });
+  }
+}
+
+export async function POST(request) {
+  try {
+    const { userId, orderData } = await request.json();
+    if (!userId || !orderData) {
+      throw new Error('User ID and order data are required');
+    }
+    const newItem = addToCart(userId, orderData);
+    return NextResponse.json(newItem, { status: 201 });
+  } catch (error) {
+    console.error('Error adding to cart:', error);
+    return NextResponse.json({ error: 'Failed to add to cart' }, { status: 500 });
   }
 }
 
@@ -31,13 +33,26 @@ export async function DELETE(request) {
   try {
     const userId = request.nextUrl.searchParams.get('userId');
     const itemId = request.nextUrl.searchParams.get('itemId');
-    if (!userId || !itemId) {
-      throw new Error('User ID and Item ID are required');
+
+    if (!userId) {
+      throw new Error('User ID is required');
     }
-    await deleteOrder(userId, itemId);
-    return NextResponse.json({ message: 'Order deleted successfully' }, { status: 200 });
+
+    if (itemId) {
+      const success = removeFromCart(userId, itemId);
+      if (!success) {
+        throw new Error('Failed to delete item from cart');
+      }
+      return NextResponse.json({ message: 'Item deleted successfully' }, { status: 200 });
+    } else {
+      const success = clearCart(userId);
+      if (!success) {
+        throw new Error('Failed to clear cart');
+      }
+      return NextResponse.json({ message: 'Cart cleared successfully' }, { status: 200 });
+    }
   } catch (error) {
-    console.error('Error deleting order:', error);
-    return NextResponse.json({ error: 'Failed to delete order' }, { status: 500 });
+    console.error('Error deleting item from cart:', error);
+    return NextResponse.json({ error: 'Failed to delete item from cart' }, { status: 500 });
   }
 }

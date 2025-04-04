@@ -1,25 +1,26 @@
 [
   {
-    "id": 4,
-    "nameCategory": "category1(edit)",
-    "updatedAt": "2025-01-21T06:50:26.869Z"
-  },
-  {
-    "id": 5,
-    "nameCategory": "category2"
-  },
-  {
-    "id": 7,
-    "nameCategory": "category3"
-  },
-  {
-    "id": 8,
-    "nameCategory": "Category4"
-  },
-  {
     "id": 9,
-    "nameCategory": "Category5",
-    "createdAt": "2025-01-21T06:46:16.957Z",
-    "updatedAt": "2025-01-21T06:46:16.957Z"
+    "nameCategory": "Ice",
+    "createdAt": "2025-01-26T14:00:56.817Z",
+    "updatedAt": "2025-01-26T14:00:56.817Z"
+  },
+  {
+    "id": 10,
+    "nameCategory": "Hot",
+    "createdAt": "2025-01-26T14:02:47.759Z",
+    "updatedAt": "2025-01-26T14:02:47.759Z"
+  },
+  {
+    "id": 11,
+    "nameCategory": "Frappe",
+    "createdAt": "2025-01-26T14:05:40.017Z",
+    "updatedAt": "2025-01-26T14:05:40.017Z"
+  },
+  {
+    "id": 12,
+    "nameCategory": "Tea",
+    "createdAt": "2025-01-26T14:10:41.960Z",
+    "updatedAt": "2025-01-26T15:08:10.154Z"
   }
 ]

@@ -51,8 +51,8 @@ const AddNewDrink = ({ setShowAddNewDrink, onAddNewDrink }) => {
       const selectedCategory = categories.find(category => category.id === parseInt(value));
       setDrink((prev) => ({
         ...prev,
-        categoryId: selectedCategory.id,
-        categoryName: selectedCategory.nameCategory,
+        categoryId: selectedCategory ? selectedCategory.id : "",
+        categoryName: selectedCategory ? selectedCategory.nameCategory : "",
       }));
     } else {
       setDrink((prev) => ({
@@ -77,6 +77,20 @@ const AddNewDrink = ({ setShowAddNewDrink, onAddNewDrink }) => {
       ...prev,
       toppings: prev.toppings.filter((_, i) => i !== index),
     }));
+  };
+
+  const handleImageChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setDrink((prev) => ({
+          ...prev,
+          image: reader.result,
+        }));
+      };
+      reader.readAsDataURL(file);
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -157,7 +171,7 @@ const AddNewDrink = ({ setShowAddNewDrink, onAddNewDrink }) => {
           <input
             type="text"
             name="title"
-            value={drink.title}
+            value={drink.title || ""}
             onChange={handleChange}
             className="w-full border p-2 rounded text-black"
           />
@@ -167,7 +181,7 @@ const AddNewDrink = ({ setShowAddNewDrink, onAddNewDrink }) => {
           <label className="block mb-1 text-black">Category</label>
           <select
             name="categoryId"
-            value={drink.categoryId}
+            value={drink.categoryId || ""}
             onChange={handleChange}
             className="w-full border p-2 rounded text-black"
           >
@@ -181,14 +195,13 @@ const AddNewDrink = ({ setShowAddNewDrink, onAddNewDrink }) => {
         </div>
 
         <div>
-          <label className="block mb-1 text-black">Image URL</label>
+          <label className="block mb-1 text-black">Image URL (or upload image)</label>
           <input
-            type="text"
-            name="image"
-            value={drink.image}
-            onChange={handleChange}
+            type="file"
+            onChange={handleImageChange}
             className="w-full border p-2 rounded text-black"
           />
+          {drink.image && <img src={drink.image} alt="Drink Preview" className="mt-2 max-h-40" />}
         </div>
 
         <div>
@@ -196,7 +209,7 @@ const AddNewDrink = ({ setShowAddNewDrink, onAddNewDrink }) => {
           <input
             type="number"
             name="soldCount"
-            value={drink.soldCount}
+            value={drink.soldCount || 0}
             onChange={handleChange}
             className="w-full border p-2 rounded text-black"
             disabled // Disable input for soldCount
@@ -208,7 +221,7 @@ const AddNewDrink = ({ setShowAddNewDrink, onAddNewDrink }) => {
           <input
             type="number"
             name="price"
-            value={drink.price}
+            value={drink.price || 0.0}
             onChange={handleChange}
             className="w-full border p-2 rounded text-black"
           />
@@ -276,7 +289,7 @@ const AddNewDrink = ({ setShowAddNewDrink, onAddNewDrink }) => {
             <input
               type="text"
               name="newTopping"
-              value={newTopping}
+              value={newTopping || ""}
               onChange={(e) => setNewTopping(e.target.value)}
               className="w-full border p-2 rounded text-black"
               disabled={noneTopping}

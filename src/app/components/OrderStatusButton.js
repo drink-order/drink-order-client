@@ -1,50 +1,49 @@
-"use client";
+import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 
-import React, { useEffect, useState } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
-
-const FloatingOrderButton = () => {
-  const [orderStatus, setOrderStatus] = useState(null);
+const OrderStatusButton = ({ orderId }) => {
   const searchParams = useSearchParams();
-  const orderId = searchParams.get('orderId');
-  const router = useRouter();
+  const statusFromParams = searchParams.get('status') || 'Preparing'; // Default status
+  const [status, setStatus] = useState(statusFromParams);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
-    // Fetch the order status from the API
-    const fetchOrderStatus = async () => {
-      try {
-        const response = await fetch(`/api/orders?orderId=${orderId}`);
-        if (!response.ok) {
-          throw new Error('Failed to fetch order status');
-        }
-        const data = await response.json();
-        setOrderStatus(data.status);
-      } catch (error) {
-        console.error('Error fetching order status:', error);
-      }
-    };
-
+    // Store orderId in local storage
     if (orderId) {
-      fetchOrderStatus();
+      localStorage.setItem('orderId', orderId);
+    }
+
+    // Retrieve orderId from local storage if not provided as a prop
+    const storedOrderId = orderId || localStorage.getItem('orderId');
+
+    if (!storedOrderId) {
+      setError('Invalid order ID');
     }
   }, [orderId]);
 
-  const handleNavigateToOrderSuc = () => {
-    router.push(`/OrderSuc?orderId=${orderId}`);
-  };
-
-  if (orderStatus === 'PickedUp') {
-    return null;
+  if (error) {
+    return <div style={{ color: 'red', textAlign: 'center' }}>{error}</div>;
   }
 
   return (
-    <button
-      onClick={handleNavigateToOrderSuc}
-      className="fixed bottom-32 right-16 bg-yellow-600 text-white px-4 py-2 rounded-full hover:bg-yellow-700"
-    >
-      View Order
-    </button>
+    <div style={{ padding: '20px', fontFamily: 'Arial, sans-serif', textAlign: 'center' }}>
+      <button
+        style={{
+          padding: '15px 30px',
+          fontSize: '18px',
+          backgroundColor: status === 'Ready to Pickup' ? 'green' : status === 'Pickedup' ? 'blue' : 'orange',
+          color: 'white',
+          border: 'none',
+          borderRadius: '5px',
+          cursor: 'default',
+          transition: 'background-color 0.3s',
+        }}
+        disabled
+      >
+        {status}
+      </button>
+    </div>
   );
 };
 
-export default FloatingOrderButton;
+export default OrderStatusButton;

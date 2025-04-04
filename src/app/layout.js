@@ -5,7 +5,6 @@ import { CartProvider } from './context/CartContext';
 import localFont from "next/font/local";
 import "./globals.css";
 import { OrderProvider } from "./context/OrderContext";
-import FloatingOrderButton from "./components/FloatingOrderButton";
 
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
@@ -37,7 +36,6 @@ export default function RootLayout({
               {children}
               <NavBarWrapper />
               <Toaster />
-              <FloatingOrderButton />
             </CartProvider>
           </OrderProvider>
         </body>

@@ -5,10 +5,11 @@ import Image from "next/image";
 import CategorySelector from "./components/CategorySelector";
 import DrinkDetails from "./components/DrinkDetails";
 import StickyCartButton from "./components/StickyCartButton";
-import { useSession } from 'next-auth/react';
-import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import { useCart } from './context/CartContext';
+import FloatingOrderButton from "./components/FloatingOrderButton"; // Import the FloatingOrderButton component
+import { useSession } from "next-auth/react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useCart } from "./context/CartContext";
 
 export default function Home() {
   const { data: session } = useSession();
@@ -25,7 +26,9 @@ export default function Home() {
         const response = await fetch("/api/drinks");
         if (!response.ok) {
           const errorText = await response.text();
-          throw new Error(`Failed to fetch drinks: ${response.statusText} - ${errorText}`);
+          throw new Error(
+            `Failed to fetch drinks: ${response.statusText} - ${errorText}`
+          );
         }
         const data = await response.json();
         setDrinks(data);
@@ -40,16 +43,16 @@ export default function Home() {
   useEffect(() => {
     const userRole = session?.user?.role;
 
-    if (userRole === 'admin') {
-      router.push('/admin');
-    } else if (userRole === 'shopOwner') {
-      router.push('/shop-owner');
-    } else if (userRole === 'staff') {
-      router.push('/staff');
+    if (userRole === "admin") {
+      router.push("/admin");
+    } else if (userRole === "shopOwner") {
+      router.push("/shop-owner");
+    } else if (userRole === "staff") {
+      router.push("/staff");
     }
   }, [session, router]);
 
-  const userName = session?.user?.username || session?.user?.name || 'Customer';
+  const userName = session?.user?.username || session?.user?.name || "Customer";
 
   const handleCardClick = (drink) => {
     setScrollPosition(window.scrollY);
@@ -68,12 +71,10 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-gray-100 flex flex-col">
       <div className="flex justify-between items-center p-4">
-        <div>
-          {`Hello, ${userName}`}
-        </div>
+        <div>{`Hello, ${userName}`}</div>
         <Link href="/account">
           <Image
-            src={'/user_icon.png'}
+            src={"/user_icon.png"}
             alt="Profile"
             width={48}
             height={48}
@@ -100,12 +101,14 @@ export default function Home() {
         ) : (
           <>
             {/* Spacer or Padding to Allow Scrolling */}
-            <div className={`p-12 ${cart && cart.length > 0 ? 'pb-24' : ''}`}></div>
+            <div className={`p-12 ${cart && cart.length > 0 ? "pb-24" : ""}`}></div>
             {/* Sticky Cart Button */}
             <StickyCartButton />
           </>
         )}
       </div>
+      {/* Floating Order Button */}
+      <FloatingOrderButton /> {/* Add the FloatingOrderButton component */}
     </div>
   );
 }

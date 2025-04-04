@@ -1,65 +1,90 @@
 import { NextResponse } from 'next/server';
-import { createOrder, getOrders, deleteOrderItem, getOrderStatus, updateOrderStatus } from '../../lib/orderedData';
-
-export async function POST(request) {
-  try {
-    const newOrder = await request.json();
-    const createdOrder = createOrder(newOrder);
-    return NextResponse.json(createdOrder, { status: 201 });
-  } catch (error) {
-    console.error('Error creating order:', error);
-    return NextResponse.json({ error: 'Failed to create order' }, { status: 500 });
-  }
-}
+import {
+  createOrder,
+  getOrders,
+  getOrderStatus,
+  deleteOrder,
+  deleteAllOrders,
+  updateOrder
+} from '../../lib/orderedData';
 
 export async function GET(request) {
   try {
-    const userId = request.nextUrl.searchParams.get('userId');
     const orderId = request.nextUrl.searchParams.get('orderId');
-    if (userId) {
-      const orders = getOrders(userId);
-      const total = orders.reduce((acc, order) => acc + order.price * order.quantity, 0);
-      return NextResponse.json({ items: orders, total }, { status: 200 });
-    } else if (orderId) {
+    const userId = request.nextUrl.searchParams.get('userId');
+
+    if (orderId) {
       const status = getOrderStatus(orderId);
       if (status === null) {
-        throw new Error('Order not found');
+        return NextResponse.json({ message: 'Order not found' }, { status: 404 });
       }
       return NextResponse.json({ status }, { status: 200 });
-    } else {
-      throw new Error('User ID or Order ID is required');
     }
+
+    if (userId) {
+      const orders = getOrders(userId);
+      if (orders.length === 0) {
+        return NextResponse.json({ message: 'No orders found', orders: [] }, { status: 200 });
+      }
+      return NextResponse.json({ orders }, { status: 200 });
+    }
+
+    return NextResponse.json({ message: 'Order ID or User ID is required' }, { status: 400 });
   } catch (error) {
     console.error('Error fetching orders:', error);
     return NextResponse.json({ error: 'Failed to fetch orders' }, { status: 500 });
   }
 }
 
-export async function PUT(request) {
+export async function POST(request) {
   try {
-    const { orderId, status } = await request.json();
-    const updatedOrder = updateOrderStatus(orderId, status);
-    if (!updatedOrder) {
-      throw new Error('Order not found');
+    const { userId, items, status, date } = await request.json();
+    if (!userId || !items || !status || !date) {
+      return NextResponse.json({ error: 'User ID, items, status, and date are required' }, { status: 400 });
     }
-    return NextResponse.json(updatedOrder, { status: 200 });
+    const newOrder = createOrder(userId, { items, status, date });
+    return NextResponse.json(newOrder, { status: 201 });
   } catch (error) {
-    console.error('Error updating order status:', error);
-    return NextResponse.json({ error: 'Failed to update order status' }, { status: 500 });
+    console.error('Error creating order:', error);
+    return NextResponse.json({ error: 'Failed to create order' }, { status: 500 });
   }
 }
 
 export async function DELETE(request) {
   try {
-    const userId = request.nextUrl.searchParams.get('userId');
-    const itemId = request.nextUrl.searchParams.get('itemId');
-    if (!userId || !itemId) {
-      throw new Error('User ID and Item ID are required');
+    const { userId, orderId } = await request.json();
+
+    if (userId && orderId) {
+      const success = deleteOrder(userId, orderId);
+      if (!success) {
+        return NextResponse.json({ error: 'Order not found' }, { status: 404 });
+      }
+      return NextResponse.json({ message: 'Order deleted successfully' }, { status: 200 });
+    } else if (userId) {
+      deleteAllOrders(userId);
+      return NextResponse.json({ message: 'All orders deleted successfully' }, { status: 200 });
+    } else {
+      return NextResponse.json({ error: 'User ID is required' }, { status: 400 });
     }
-    deleteOrderItem(userId, itemId);
-    return NextResponse.json({ message: 'Item deleted successfully' }, { status: 200 });
   } catch (error) {
-    console.error('Error deleting order item:', error);
-    return NextResponse.json({ error: 'Failed to delete order item' }, { status: 500 });
+    console.error('Error deleting order(s):', error);
+    return NextResponse.json({ error: 'Failed to delete order(s)' }, { status: 500 });
+  }
+}
+
+export async function PATCH(request) {
+  try {
+    const { userId, orderId, updateData } = await request.json();
+    if (!userId || !orderId || !updateData) {
+      return NextResponse.json({ error: 'User ID, order ID, and update data are required' }, { status: 400 });
+    }
+    const updatedOrder = updateOrder(userId, orderId, updateData);
+    if (!updatedOrder) {
+      return NextResponse.json({ error: 'Order not found' }, { status: 404 });
+    }
+    return NextResponse.json(updatedOrder, { status: 200 });
+  } catch (error) {
+    console.error('Error updating order:', error);
+    return NextResponse.json({ error: 'Failed to update order' }, { status: 500 });
   }
 }
