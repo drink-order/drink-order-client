@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { AiOutlineSearch } from 'react-icons/ai';
-import Card from "./Card";
+import Card from "./card";
 
 const CategorySelector = ({ drinks, onCardClick, activeCategory, onCategoryChange }) => {
   const [categories, setCategories] = useState([]);

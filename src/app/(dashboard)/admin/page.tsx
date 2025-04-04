@@ -1,15 +1,14 @@
 "use client";
 import React, { useState } from "react";
 import { FaClipboardCheck, FaCoffee } from "react-icons/fa";
-import { PiNotificationBold, PiHandWavingBold } from "react-icons/pi";
-import { GiSandsOfTime } from "react-icons/gi";
+import { PiHandWavingBold } from "react-icons/pi";
 import CategoryList from './components/CategoryList';
 import AccountManagement from './components/AccountManagement';
 
-export default function AdminDashboard() {
-  const [activeTab, setActiveTab] = useState("accounts");
+const AdminDashboard: React.FC = () => {
+  const [activeTab, setActiveTab] = useState<string>("accounts");
 
-  const handleTabChange = (tab) => {
+  const handleTabChange = (tab: string) => {
     setActiveTab(tab);
   };
 
@@ -86,4 +85,6 @@ export default function AdminDashboard() {
       </div>
     </div>
   );
-}
+};
+
+export default AdminDashboard;

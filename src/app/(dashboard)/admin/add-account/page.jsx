@@ -1,13 +1,15 @@
 "use client";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { useRouter } from 'next/navigation';
 
-const AddAccount = ({ onBack, onAdd, fetchAccounts }) => {
+const AddAccount = () => {
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [role, setRole] = useState("user");
   const [password, setPassword] = useState("");
   const [error, setError] = useState(null);
+  const router = useRouter();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -33,13 +35,21 @@ const AddAccount = ({ onBack, onAdd, fetchAccounts }) => {
       }
 
       const newAccount = await res.json();
-      onAdd(newAccount);
-      fetchAccounts(); // Refresh the account list
+      // Optionally, you can redirect or show a success message here
+      router.push('/admin'); // Redirect to admin page after adding account
     } catch (error) {
       console.error("Error creating account:", error);
       setError(error.message || "An error occurred while creating the account.");
     }
   };
+
+  // useEffect for side effects like error display
+  useEffect(() => {
+    if (error) {
+      // You can show a toast notification, log the error, etc.
+      console.error("Error occurred:", error);
+    }
+  }, [error]);  // This will run whenever the `error` state changes
 
   return (
     <div className="p-4">
@@ -84,7 +94,7 @@ const AddAccount = ({ onBack, onAdd, fetchAccounts }) => {
           className="border border-slate-500 px-8 py-2"
         />
         <div className="flex gap-3">
-          <button type="button" onClick={onBack} className="bg-[#5D4435] font-bold text-white py-3 px-5 w-fit">
+          <button type="button" onClick={() => router.back()} className="bg-[#5D4435] font-bold text-white py-3 px-5 w-fit">
             Back
           </button>
           <button type="submit" className="bg-[#5D4435] font-bold text-white py-3 px-5 w-fit">

@@ -5,10 +5,11 @@ import * as z from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useToast } from "@/hooks/use-toast";
+import { useToast } from "@/hooks/use-toast"; // Ensure you have a toast hook for showing notifications.
 
 const phoneRegex = /^0\d{8,9}$/;
 
+// Zod schema for form validation
 const FormSchema = z
   .object({
     username: z.string().min(1, 'Username is required').max(100),

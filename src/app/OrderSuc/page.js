@@ -13,6 +13,7 @@ const OrderSucPage = () => {
 
   useEffect(() => {
     if (!orderId) {
+
       setError('Invalid order ID');
     }
   }, [orderId]);

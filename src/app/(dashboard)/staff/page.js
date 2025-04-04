@@ -1,11 +1,12 @@
 "use client";
-import React, { useState } from "react";
+
+import React, { useState, Suspense } from "react";
 import { FaClipboardCheck, FaCoffee } from "react-icons/fa";
 import { PiNotificationBold, PiHandWavingBold } from "react-icons/pi";
 import { GiSandsOfTime } from "react-icons/gi";
-import ReceivedOrder from './component/ReceivedOrder';
-import ReadyToPickup from './component/ReadyToPickup';
-import Completed from './component/Completed';
+import ReceivedOrder from "./component/ReceivedOrder";
+import ReadyToPickup from "./component/ReadyToPickup";
+import Completed from "./component/Completed";
 
 export default function StaffDashboard() {
   const [activeTab, setActiveTab] = useState("received");
@@ -31,7 +32,9 @@ export default function StaffDashboard() {
             <li>
               <button
                 className={`w-full flex items-center px-3 py-2 rounded-md ${
-                  activeTab === "received" ? "bg-yellow-400 text-white" : "text-gray-700 hover:text-white hover:bg-yellow-400"
+                  activeTab === "received"
+                    ? "bg-yellow-400 text-white"
+                    : "text-gray-700 hover:text-white hover:bg-yellow-400"
                 }`}
                 onClick={() => handleTabChange("received")}
               >
@@ -44,7 +47,9 @@ export default function StaffDashboard() {
             <li>
               <button
                 className={`w-full flex items-center px-3 py-2 rounded-md ${
-                  activeTab === "ready" ? "bg-yellow-400 text-white" : "text-gray-700 hover:text-white hover:bg-yellow-400"
+                  activeTab === "ready"
+                    ? "bg-yellow-400 text-white"
+                    : "text-gray-700 hover:text-white hover:bg-yellow-400"
                 }`}
                 onClick={() => handleTabChange("ready")}
               >
@@ -57,7 +62,9 @@ export default function StaffDashboard() {
             <li>
               <button
                 className={`w-full flex items-center px-3 py-2 rounded-md ${
-                  activeTab === "completed" ? "bg-yellow-400 text-white" : "text-gray-700 hover:text-white hover:bg-yellow-400"
+                  activeTab === "completed"
+                    ? "bg-yellow-400 text-white"
+                    : "text-gray-700 hover:text-white hover:bg-yellow-400"
                 }`}
                 onClick={() => handleTabChange("completed")}
               >
@@ -71,11 +78,17 @@ export default function StaffDashboard() {
         </div>
         <button
           className={`p-4 flex items-center space-x-3 w-full text-left ${
-            activeTab === "profile" ? "bg-yellow-400 text-white" : "text-gray-700 hover:text-white hover:bg-yellow-400"
+            activeTab === "profile"
+              ? "bg-yellow-400 text-white"
+              : "text-gray-700 hover:text-white hover:bg-yellow-400"
           }`}
           onClick={() => handleTabChange("profile")}
         >
-          <img src="./chillguy.jpg" alt="Profile" className="w-10 h-10 rounded-full" />
+          <img
+            src="/chillguy.jpg"
+            alt="Profile"
+            className="w-10 h-10 rounded-full"
+          />
           <div>
             <p className="font-bold">Admin</p>
             <p className="text-sm">Project Manager</p>
@@ -93,10 +106,24 @@ export default function StaffDashboard() {
           ,
         </h1>
         <div className="mt-4">
-          {activeTab === "received" && <div><ReceivedOrder /></div>}
-          {activeTab === "ready" && <div><ReadyToPickup /></div>}
-          {activeTab === "completed" && <div><Completed /></div>}
-          {activeTab === "profile" && <div>Profile Content</div>}
+          <Suspense fallback={<div>Loading...</div>}>
+            {activeTab === "received" && (
+              <div>
+                <ReceivedOrder />
+              </div>
+            )}
+            {activeTab === "ready" && (
+              <div>
+                <ReadyToPickup />
+              </div>
+            )}
+            {activeTab === "completed" && (
+              <div>
+                <Completed />
+              </div>
+            )}
+            {activeTab === "profile" && <div>Profile Content</div>}
+          </Suspense>
         </div>
       </div>
     </div>

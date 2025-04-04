@@ -6,7 +6,7 @@ import OrderInfo from '../components/OrderInfo';
 import SuccessAnimate from '../components/SuccessAnimate';
 import OrderStatusButton from '../components/OrderStatusButton';
 
-export const Page = () => {
+const Page = () => {
   const [isCheckoutComplete, setIsCheckoutComplete] = useState(false);
 
   const handleCheckout = () => {

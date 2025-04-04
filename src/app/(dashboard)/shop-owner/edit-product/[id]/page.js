@@ -1,12 +1,16 @@
 "use client";
 import React, { useState, useEffect } from "react";
+import { useRouter, useSearchParams } from 'next/navigation';
 
-const EditProduct = ({ setShowEditProduct, onUpdateProduct, id }) => {
+const EditProduct = () => {
   const [product, setProduct] = useState(null);
   const [categories, setCategories] = useState([]);
   const [newTopping, setNewTopping] = useState("");
   const [noneTopping, setNoneTopping] = useState(false);
   const [error, setError] = useState(null);
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const id = searchParams.get('id');
 
   useEffect(() => {
     // Fetch product details from the API
@@ -109,8 +113,7 @@ const EditProduct = ({ setShowEditProduct, onUpdateProduct, id }) => {
         throw new Error(`Failed to update product: ${res.statusText}`);
       }
       const data = await res.json();
-      onUpdateProduct(data.drink);
-      setShowEditProduct(false);
+      router.push('/shop-owner'); // Redirect to shop-owner page after updating product
     } catch (error) {
       console.error("Error updating product:", error);
       setError(error.message);
@@ -118,7 +121,7 @@ const EditProduct = ({ setShowEditProduct, onUpdateProduct, id }) => {
   };
 
   const handleBack = () => {
-    setShowEditProduct(false);
+    router.back();
   };
 
   if (error) {
