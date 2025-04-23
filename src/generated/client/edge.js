@@ -163,7 +163,7 @@ const config = {
       "value": "prisma-client-js"
     },
     "output": {
-      "value": "D:\\WCT\\Drink-Ordering-Website\\src\\generated\\client",
+      "value": "C:\\Drink-Ordering-Website\\src\\generated\\client",
       "fromEnvVar": null
     },
     "config": {
@@ -178,7 +178,7 @@ const config = {
       }
     ],
     "previewFeatures": [],
-    "sourceFilePath": "D:\\WCT\\Drink-Ordering-Website\\prisma\\schema.prisma",
+    "sourceFilePath": "C:\\Drink-Ordering-Website\\prisma\\schema.prisma",
     "isCustomOutput": true
   },
   "relativeEnvPaths": {

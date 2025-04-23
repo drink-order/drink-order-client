@@ -1,16 +1,23 @@
 "use client";
-
-import React from 'react'
+import React, { Suspense } from 'react';
 import SuccessAnimate from '../components/SuccessAnimate';
 import OrderStatusButton from '../components/OrderStatusButton';
 
-const OrderStatus = () => {
+const OrderStatusContent = () => {
   return (
     <div>
-        <SuccessAnimate />
-        <OrderStatusButton />
+      <SuccessAnimate />
+      <OrderStatusButton />
     </div>
-  )
-}
+  );
+};
 
-export default OrderStatus
+const OrderStatus = () => {
+  return (
+    <Suspense fallback={<div>Loading order status...</div>}>
+      <OrderStatusContent />
+    </Suspense>
+  );
+};
+
+export default OrderStatus;

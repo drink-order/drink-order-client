@@ -1,11 +1,12 @@
 "use client";
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import SuccessAnimate from '../components/SuccessAnimate';
 import OrderStatusButton from '../components/OrderStatusButton';
 
-const OrderSucPage = () => {
+// Create a content component that uses useSearchParams
+const OrderSucContent = () => {
   const searchParams = useSearchParams();
   const orderId = searchParams.get('orderId');
   const orderStatus = searchParams.get('status') || 'Preparing'; // Default status
@@ -13,7 +14,6 @@ const OrderSucPage = () => {
 
   useEffect(() => {
     if (!orderId) {
-
       setError('Invalid order ID');
     }
   }, [orderId]);
@@ -31,6 +31,15 @@ const OrderSucPage = () => {
       </div>
       {orderId && <OrderStatusButton orderId={orderId} />}
     </div>
+  );
+};
+
+// Main page component with Suspense boundary
+const OrderSucPage = () => {
+  return (
+    <Suspense fallback={<div>Loading order details...</div>}>
+      <OrderSucContent />
+    </Suspense>
   );
 };
 
