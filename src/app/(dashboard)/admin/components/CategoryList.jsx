@@ -10,7 +10,7 @@ import { useRouter } from 'next/navigation';
 
 const getCategories = async () => {
   try {
-    const res = await fetch("http://localhost:3000/admin/api/category", {
+    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/api/category/${id}`, {
       cache: "no-store",
     });
 
