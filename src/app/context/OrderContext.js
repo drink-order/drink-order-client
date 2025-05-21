@@ -1,84 +1,180 @@
 "use client";
 
-import React, { createContext, useContext, useState } from 'react';
-import { v4 as uuidv4 } from 'uuid';
+import React, { createContext, useContext, useState, useEffect } from 'react';
+import { useAuth } from './AuthContext';
+import { useCart } from './CartContext';
 
 const OrderContext = createContext();
 
 export const OrderProvider = ({ children }) => {
   const [orders, setOrders] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
   const [latestOrderId, setLatestOrderId] = useState(null);
+  
+  // Use optional chaining to avoid the destructuring error
+  const auth = useAuth();
+  const user = auth?.user;
+  
+  const cart = useCart();
+  const clearCart = cart?.clearCart;
 
-  const addOrder = async (userId, cart) => {
-    const orderId = uuidv4();
-    const newOrder = {
-      id: orderId,
-      userId: userId, // Ensure userId is included
-      items: cart,
-      status: 'Preparing', // Initial status
-      date: new Date().toISOString(),
-    };
+  // Format cart items for the Laravel API
+  const formatCartItemsForAPI = (cartItems) => {
+    return cartItems.map(item => ({
+      product_size_id: item.productSizeId || item.product_size_id, 
+      quantity: item.quantity,
+      toppings: item.toppings.map(topping => ({
+        topping_id: topping.id || topping.topping_id
+      }))
+    }));
+  };
 
+  // Create a new order
+  const addOrder = async (userId, cartItems) => {
+    setLoading(true);
+    setError(null);
+    
     try {
-      const response = await fetch('/api/orders', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(newOrder),
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Failed to store order: ${response.statusText} - ${errorText}`);
+      // Format the order data for the API
+      const orderData = {
+        items: formatCartItemsForAPI(cartItems)
+      };
+      
+      // Send order to backend
+      const response = await orderService.createOrder(orderData);
+      
+      // Extract orderId from the response
+      const orderId = response.order?.id;
+      
+      if (orderId) {
+        setLatestOrderId(orderId);
+        
+        // Clear the cart after successful order
+        if (clearCart) {
+          await clearCart();
+        }
+        
+        return orderId;
+      } else {
+        throw new Error('No order ID returned from server');
       }
+    } catch (err) {
+      setError(err.message || 'Failed to create order');
+      console.error('Error creating order:', err);
+      return null;
+    } finally {
+      setLoading(false);
+    }
+  };
 
-      const storedOrder = await response.json();
-      setOrders((prevOrders) => [...prevOrders, storedOrder]);
-      setLatestOrderId(orderId); // Store the latest order ID
-      return orderId;
-    } catch (error) {
-      console.error('Error storing order:', error);
+  // Get all orders for the current user
+  const fetchUserOrders = async () => {
+    if (!user) return [];
+    
+    setLoading(true);
+    setError(null);
+    
+    try {
+      const response = await orderService.getUserOrders();
+      
+      if (response && response.orders) {
+        setOrders(response.orders);
+      }
+      
+      return response.orders;
+    } catch (err) {
+      setError(err.message || 'Failed to fetch orders');
+      console.error('Error fetching orders:', err);
+      return [];
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Get order by ID
+  const getOrderById = async (orderId) => {
+    if (!orderId) return null;
+    
+    setLoading(true);
+    setError(null);
+    
+    try {
+      const response = await orderService.getOrderById(orderId);
+      
+      if (response && response.order) {
+        return response.order;
+      }
+      
+      return null;
+    } catch (err) {
+      setError(err.message || 'Failed to fetch order details');
+      console.error('Error fetching order details:', err);
+      return null;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Get order status
+  const getOrderStatus = async (orderId) => {
+    if (!orderId) return null;
+    
+    try {
+      const order = await getOrderById(orderId);
+      return order ? order.order_status : null;
+    } catch (err) {
+      console.error('Error fetching order status:', err);
       return null;
     }
   };
 
+  // Update order status (for staff/admin)
   const updateOrderStatus = async (orderId, status) => {
+    if (!orderId || !status) return false;
+    
+    setLoading(true);
+    setError(null);
+    
     try {
-      const response = await fetch(`/api/orders/${orderId}`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ status }),
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Failed to update order status: ${response.statusText} - ${errorText}`);
-      }
-
-      const updatedOrder = await response.json();
-      setOrders((prevOrders) =>
-        prevOrders.map((order) =>
-          order.id === orderId ? { ...order, status: updatedOrder.status } : order
+      await orderService.updateOrderStatus(orderId, status);
+      
+      // Update local orders state
+      setOrders(prevOrders => 
+        prevOrders.map(order => 
+          order.id === orderId 
+            ? { ...order, order_status: status } 
+            : order
         )
       );
-    } catch (error) {
-      console.error('Error updating order status:', error);
+      
+      return true;
+    } catch (err) {
+      setError(err.message || 'Failed to update order status');
+      console.error('Error updating order status:', err);
+      return false;
+    } finally {
+      setLoading(false);
     }
   };
 
-  const getOrderById = (orderId) => {
-    return orders.find(order => order.id === orderId);
-  };
-
+  // Get latest order ID
   const getLatestOrderId = () => {
     return latestOrderId;
   };
 
   return (
-    <OrderContext.Provider value={{ orders, addOrder, updateOrderStatus, getOrderById, getLatestOrderId }}>
+    <OrderContext.Provider value={{ 
+      orders, 
+      loading, 
+      error,
+      addOrder,
+      fetchUserOrders,
+      getOrderById,
+      getOrderStatus,
+      updateOrderStatus,
+      getLatestOrderId 
+    }}>
       {children}
     </OrderContext.Provider>
   );

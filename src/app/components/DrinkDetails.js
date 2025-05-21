@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 import DrinkOption from "./DrinkOption";
 import CounterInput from "./CounterInput";
 import Button from "./Button";
-import { getSession } from "next-auth/react";
+import { useAuth } from "../context/AuthContext";
 import { useCart } from "../context/CartContext";
 import { useRouter } from "next/navigation";
 
@@ -18,21 +18,19 @@ const DrinkDetails = ({ drink, onBack }) => {
   const [canOrder, setCanOrder] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
-  const [userId, setUserId] = useState(null);
   const [loading, setLoading] = useState(false);
+  const { user } = useAuth();
   const { addToCart } = useCart();
   const router = useRouter();
 
   useEffect(() => {
     const initialize = async () => {
       setErrorMessage(""); // Clear any previous errors
-      const session = await getSession();
 
-      if (!session) {
+      if (!user) {
         setErrorMessage("You need to be logged in to place an order.");
         return;
       }
-      setUserId(session.user.id);
 
       if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(
@@ -67,7 +65,7 @@ const DrinkDetails = ({ drink, onBack }) => {
     };
 
     initialize();
-  }, []);
+  }, [user]);
 
   const handleLocationError = (error) => {
     switch (error.code) {
@@ -86,7 +84,7 @@ const DrinkDetails = ({ drink, onBack }) => {
   };
 
   const handleAddToCart = async () => {
-    if (!userId) {
+    if (!user) {
       router.push("/sign-in"); // Redirect to login page
       return;
     }

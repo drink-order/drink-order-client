@@ -2,10 +2,10 @@
 
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { useSession } from "next-auth/react";
+import { useAuth } from "../context/AuthContext";
 
 const FloatingOrderButton = () => {
-  const { data: session } = useSession();
+  const { user } = useAuth();
   const [orderId, setOrderId] = useState(null);
   const [orderStatus, setOrderStatus] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -13,7 +13,7 @@ const FloatingOrderButton = () => {
   const currentPath = router.pathname;
 
   useEffect(() => {
-    if (!session) {
+    if (!user) {
       setIsLoading(false);
       return;
     }
@@ -21,7 +21,7 @@ const FloatingOrderButton = () => {
     const fetchOrderDetails = async () => {
       try {
         setIsLoading(true);
-        const response = await fetch(`/api/orders?userId=${session.user.id}`);
+        const response = await fetch(`/api/orders?userId=${user.id}`);
         if (!response.ok) throw new Error("Failed to fetch order details");
 
         const data = await response.json();
@@ -59,7 +59,7 @@ const FloatingOrderButton = () => {
     };
 
     fetchOrderDetails();
-  }, [session]);
+  }, [user]);
 
   const handleNavigateToOrderSuc = () => {
     router.push(`/OrderSuc?orderId=${orderId}`);
