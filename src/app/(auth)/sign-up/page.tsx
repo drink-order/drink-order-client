@@ -5,7 +5,9 @@ import * as z from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useToast } from "@/hooks/use-toast"; // Ensure you have a toast hook for showing notifications.
+import { useState } from 'react';
+import { useAuth } from '../../context/AuthContext';
+import { useToast } from '@/hooks/use-toast';
 
 const phoneRegex = /^0\d{8,9}$/;
 
@@ -33,7 +35,10 @@ const FormSchema = z
 const SignUpForm = () => {
   const router = useRouter();
   const { toast } = useToast();
-  const form = useForm<z.infer<typeof FormSchema>>({
+  const { register: registerUser, sendOTP } = useAuth();
+  const [isLoading, setIsLoading] = useState(false);
+
+  const form = useForm({
     resolver: zodResolver(FormSchema),
     defaultValues: {
       username: '',
@@ -43,35 +48,61 @@ const SignUpForm = () => {
     },
   });
 
-  const onSubmit = async (values: z.infer<typeof FormSchema>) => {
-    if (phoneRegex.test(values.identifier)) {
-      // Navigate to OTP verification page if the identifier is a phone number
-      router.push(
-        `/otp?username=${encodeURIComponent(values.username)}&phoneNumber=${encodeURIComponent(values.identifier)}&password=${encodeURIComponent(values.password)}`
-      );
-    } else {
-      // Handle email signup
-      const response = await fetch('/api/user', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          username: values.username,
-          identifier: values.identifier,
-          password: values.password,
-        }),
-      });
+  const onSubmit = async (values) => {
+    setIsLoading(true);
 
-      if (response.ok) {
-        router.push('/sign-in');
-      } else {
-        toast({
-          title: "Error",
-          description: "Ops something went wrong",
-          variant: "destructive",
+    try {
+      const isEmail = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(values.identifier);
+      const isPhone = phoneRegex.test(values.identifier);
+
+      if (isPhone) {
+        // For phone numbers, send OTP first
+        const otpResult = await sendOTP(values.identifier);
+        
+        if (otpResult.success) {
+          // Navigate to OTP verification page
+          router.push(
+            `/otp?username=${encodeURIComponent(values.username)}&phoneNumber=${encodeURIComponent(values.identifier)}&password=${encodeURIComponent(values.password)}`
+          );
+        } else {
+          toast({
+            title: 'Error',
+            description: otpResult.error || 'Failed to send OTP',
+            variant: 'destructive',
+          });
+        }
+      } else if (isEmail) {
+        // For email, register directly
+        const result = await registerUser({
+          username: values.username,
+          email: values.identifier,
+          password: values.password,
         });
+
+        if (result.success) {
+          toast({
+            title: 'Success',
+            description: 'Account created successfully! Please sign in.',
+            variant: 'default',
+          });
+          router.push('/sign-in');
+        } else {
+          toast({
+            title: 'Error',
+            description: result.error || 'Registration failed',
+            variant: 'destructive',
+          });
+        }
       }
+    } catch (error) {
+      console.error('Registration error:', error);
+      toast({
+        title: 'Error',
+        description: 'Something went wrong',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -157,15 +188,16 @@ const SignUpForm = () => {
 
         <button
           type="submit"
-          className="w-full bg-blue-600 text-white p-2 rounded-md"
+          disabled={isLoading}
+          className="w-full bg-blue-600 text-white p-2 rounded-md hover:bg-blue-700"
         >
-          Create an account
+          {isLoading ? 'Creating account...' : 'Create an account'}
         </button>
 
         <p className="text-center text-sm text-gray-600 mt-4">
           Already have an account?{' '}
           <Link href="/sign-in" className="text-blue-500 hover:underline">
-            sign in here
+            Sign in here
           </Link>
         </p>
       </form>

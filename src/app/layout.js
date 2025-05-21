@@ -1,4 +1,4 @@
-import AuthProvider from "../AuthProvider";
+import { AuthProvider } from "./context/AuthContext";
 import NavBarWrapper from "./components/NavBarWrapper";
 import { Toaster } from "@/components/ui/toaster";
 import { CartProvider } from './context/CartContext';

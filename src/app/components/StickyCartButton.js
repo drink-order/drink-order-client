@@ -4,15 +4,15 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useCart } from '../context/CartContext';
 import { useOrder } from '../context/OrderContext';
-import { getSession } from 'next-auth/react';
+import { useAuth } from '../context/AuthContext';
 import CardBox from './CardBox';
 
 const StickyCartButton = () => {
   const { cart, total, removeFromCart, setCart, addToCart, calculateTotal } = useCart();
   const { addOrder, getLatestOrderId } = useOrder();
+  const { user } = useAuth();
   const [showCartModal, setShowCartModal] = useState(false);
   const cartModalRef = useRef(null);
-  const [userId, setUserId] = useState(null);
   const router = useRouter();
 
   const toggleCartModal = () => {
@@ -33,23 +33,14 @@ const StickyCartButton = () => {
   }, []);
 
   useEffect(() => {
-    const fetchSession = async () => {
-      const session = await getSession();
-      if (session) {
-        setUserId(session.user.id);
-      }
-    };
-
-    fetchSession();
-  }, []);
-
-  useEffect(() => {
     if (cart.length === 0) {
       setShowCartModal(false); // Close the modal if the cart is empty
     }
   }, [cart]);
 
   const handleQuantityChange = async (item, newQuantity) => {
+    if (!user) return;
+    
     setCart((prevCart) => {
       const updatedCart = prevCart.map((cartItem) => {
         if (cartItem.id === item.id) {
@@ -68,7 +59,7 @@ const StickyCartButton = () => {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ userId, itemId: item.id, quantity: newQuantity }),
+        body: JSON.stringify({ userId: user.id, itemId: item.id, quantity: newQuantity }),
       });
     } catch (error) {
       console.error('Error updating cart:', error);
@@ -89,11 +80,16 @@ const StickyCartButton = () => {
   };
 
   const handleCheckout = async () => {
+    if (!user) {
+      router.push('/sign-in');
+      return;
+    }
+    
     try {
-      const orderId = await addOrder(userId, cart); // Get the generated orderId directly from addOrder
+      const orderId = await addOrder(user.id, cart); // Get the generated orderId directly from addOrder
       if (orderId) {
         // Call the API to delete all items from the cart
-        await fetch(`/api/tocart?userId=${userId}`, {
+        await fetch(`/api/tocart?userId=${user.id}`, {
           method: 'DELETE',
           headers: {
             'Content-Type': 'application/json',

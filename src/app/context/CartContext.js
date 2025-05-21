@@ -1,26 +1,15 @@
 "use client";
 
 import React, { createContext, useContext, useState, useEffect } from "react";
-import { getSession } from "next-auth/react";
+import { useAuth } from "./AuthContext";
 
 const CartContext = createContext();
 
 export const CartProvider = ({ children }) => {
   const [cart, setCart] = useState([]);
   const [total, setTotal] = useState(0);
-  const [userId, setUserId] = useState(null);
-
-  // Fetch user session
-  useEffect(() => {
-    const fetchSession = async () => {
-      const session = await getSession();
-      if (session) {
-        setUserId(session.user.id);
-      }
-    };
-
-    fetchSession();
-  }, []);
+  const { user } = useAuth();
+  const userId = user?.id || null;
 
   // Fetch cart items for the logged-in user
   useEffect(() => {

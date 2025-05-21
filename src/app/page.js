@@ -5,14 +5,14 @@ import Image from "next/image";
 import CategorySelector from "./components/CategorySelector";
 import DrinkDetails from "./components/DrinkDetails";
 import StickyCartButton from "./components/StickyCartButton";
-import FloatingOrderButton from "./components/FloatingOrderButton"; // Import the FloatingOrderButton component
-import { useSession } from "next-auth/react";
+import FloatingOrderButton from "./components/FloatingOrderButton";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCart } from "./context/CartContext";
+import { useAuth } from "./context/AuthContext"; // Use your custom Auth context instead
 
 export default function Home() {
-  const { data: session } = useSession();
+  const { user } = useAuth(); // Replace useSession with useAuth
   const router = useRouter();
   const { cart } = useCart();
   const [drinks, setDrinks] = useState([]);
@@ -41,7 +41,7 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
-    const userRole = session?.user?.role;
+    const userRole = user?.role;
 
     if (userRole === "admin") {
       router.push("/admin");
@@ -50,9 +50,9 @@ export default function Home() {
     } else if (userRole === "staff") {
       router.push("/staff");
     }
-  }, [session, router]);
+  }, [user, router]);
 
-  const userName = session?.user?.username || session?.user?.name || "Customer";
+  const userName = user?.username || user?.name || "Customer";
 
   const handleCardClick = (drink) => {
     setScrollPosition(window.scrollY);
@@ -108,7 +108,7 @@ export default function Home() {
         )}
       </div>
       {/* Floating Order Button */}
-      <FloatingOrderButton /> {/* Add the FloatingOrderButton component */}
+      <FloatingOrderButton />
     </div>
   );
 }
