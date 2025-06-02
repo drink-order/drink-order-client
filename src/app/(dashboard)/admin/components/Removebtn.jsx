@@ -1,33 +1,44 @@
-"use client";
-import { useRouter } from 'next/navigation';
-import React from 'react';
-import { HiOutlineTrash } from "react-icons/hi";
+import React, { useState } from 'react';
+import { HiOutlineTrash } from 'react-icons/hi';
+import Swal from 'sweetalert2';
 
 export default function Removebtn({ id, onDelete }) {
-  const router = useRouter();
+  const [loading, setLoading] = useState(false);
 
-  const removeCategory = async () => {
-    const confirmed = confirm('Are you sure?');
+  const handleDelete = async () => {
+    const confirmed = await Swal.fire({
+      title: 'Are you sure?',
+      text: "This will permanently delete the category.",
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#d33',
+      cancelButtonColor: '#3085d6',
+      confirmButtonText: 'Yes, delete it!',
+      cancelButtonText: 'Cancel',
+    });
 
-    if (confirmed) {
-      try {
-        const res = await fetch(`http://localhost:3000/admin/api/category?id=${id}`, {
-          method: "DELETE",
-        });
+    if (confirmed.isConfirmed) {
+      setLoading(true);
+      await onDelete(id);
+      setLoading(false);
 
-        if (res.ok) {
-          onDelete(id); // Call the onDelete callback to update the state
-        } else {
-          console.error("Failed to delete category");
-        }
-      } catch (error) {
-        console.error("Error deleting category:", error);
-      }
+      Swal.fire({
+        title: 'Deleted!',
+        text: 'The category has been deleted.',
+        icon: 'success',
+        timer: 2000,
+        showConfirmButton: false,
+      });
     }
   };
 
   return (
-    <button onClick={removeCategory} className="text-red-500">
+    <button 
+      onClick={handleDelete} 
+      className="text-red-500 hover:text-red-700 disabled:opacity-50"
+      disabled={loading}
+      title="Delete category"
+    >
       <HiOutlineTrash size={24} />
     </button>
   );

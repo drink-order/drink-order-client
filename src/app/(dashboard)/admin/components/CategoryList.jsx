@@ -121,7 +121,12 @@ export default function CategoryList() {
   };
 
   if (editingCategory) {
-    return <EditCategoryForm id={editingCategory.id} nameCategory={editingCategory.nameCategory} onBack={handleBack} onUpdate={handleUpdate} />;
+    return <EditCategoryForm 
+      id={editingCategory.id} 
+      nameCategory={editingCategory.name} 
+      onBack={handleBack} 
+      onUpdate={handleUpdate} 
+    />;
   }
 
   if (addingCategory) {
