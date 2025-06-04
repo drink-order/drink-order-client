@@ -70,33 +70,113 @@ export function AuthProvider({ children }) {
     initializeAuth();
   }, [checkAuth]);
 
-  // Login function
-const login = async (email, password) => {
-  try {
-    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/login`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Accept: "application/json",
-      },
-      credentials: "include",
-      body: JSON.stringify({ email, password }), // updated field name
-    });
+  // Helper function to check if input is email
+  const isEmail = (value) => {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+  };
 
-    const data = await response.json();
-    console.log("Login response:", data); // for debugging
-
-    if (!response.ok) {
-      throw new Error(data.message || "Login failed");
+  // Helper function to normalize Cambodian phone number
+  const normalizePhoneNumber = (phone) => {
+    if (!phone) return phone;
+    
+    // Remove any spaces, dashes, or other characters except + and digits
+    const cleaned = phone.replace(/[^\d+]/g, '');
+    
+    // If starts with 0, replace with +855
+    if (cleaned.startsWith('0')) {
+      return '+855' + cleaned.slice(1);
     }
+    
+    // If starts with +855, keep as is
+    if (cleaned.startsWith('+855')) {
+      return cleaned;
+    }
+    
+    // If starts with 855, add +
+    if (cleaned.startsWith('855')) {
+      return '+' + cleaned;
+    }
+    
+    // If just the number without country code, add +855
+    if (cleaned.length >= 8 && cleaned.length <= 9 && !cleaned.includes('+')) {
+      return '+855' + cleaned;
+    }
+    
+    return cleaned;
+  };
 
-    localStorage.setItem("auth_token", data.token);
-    setUser(data.user);
-    return { success: true, user: data.user };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
+  // Updated login function to handle both email and phone
+  const login = async (loginData) => {
+    try {
+      // Transform the data to match Laravel expectations
+      let requestBody;
+      
+      if (typeof loginData === 'object' && loginData.identifier) {
+        // New format: { identifier: "email@example.com" or "012345678", password: "password" }
+        const identifier = loginData.identifier.trim();
+        
+        console.log("=== LOGIN DEBUG ===");
+        console.log("Original identifier:", identifier);
+        
+        if (isEmail(identifier)) {
+          requestBody = {
+            email: identifier.toLowerCase(),
+            password: loginData.password
+          };
+          console.log("Detected as email");
+        } else {
+          // Normalize phone number for backend
+          const normalizedPhone = normalizePhoneNumber(identifier);
+          requestBody = {
+            phone: normalizedPhone,
+            password: loginData.password
+          };
+          console.log("Detected as phone, normalized to:", normalizedPhone);
+        }
+      } else if (typeof loginData === 'string') {
+        // Old format: login(email, password) - keep for backward compatibility
+        const email = loginData;
+        const password = arguments[1];
+        requestBody = { email, password };
+        console.log("Legacy email format");
+      } else {
+        // Direct object format: { email: "...", password: "..." } or { phone: "...", password: "..." }
+        requestBody = loginData;
+        console.log("Direct object format");
+      }
+
+      console.log("Request body being sent:", requestBody);
+      console.log("==================");
+
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/login`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+        credentials: "include",
+        body: JSON.stringify(requestBody),
+      });
+
+      const data = await response.json();
+      console.log("Backend response:", data);
+
+      if (!response.ok) {
+        return { 
+          success: false, 
+          error: data.message,
+          errors: data.errors
+        };
+      }
+
+      localStorage.setItem("auth_token", data.token);
+      setUser(data.user);
+      return { success: true, user: data.user };
+    } catch (error) {
+      console.error('Login error:', error);
+      return { success: false, error: error.message };
+    }
+  };
 
   // Register function
   const register = async (userData) => {
@@ -117,18 +197,32 @@ const login = async (email, password) => {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.message || "Registration failed");
+        return { 
+          success: false, 
+          error: data.message,
+          errors: data.errors
+        };
       }
 
-      return { success: true };
+      return { success: true, data };
     } catch (error) {
       return { success: false, error: error.message };
     }
   };
 
-  // Send OTP function
-  const sendOTP = async (phoneNumber) => {
+  // Send OTP function - updated to include password parameter
+  const sendOTP = async (phoneNumber, name, password = null) => {
     try {
+      const requestBody = { 
+        phone: phoneNumber,
+        name: name
+      };
+      
+      // Add password if provided (for registration flow)
+      if (password) {
+        requestBody.password = password;
+      }
+
       const response = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/send-otp`,
         {
@@ -138,30 +232,46 @@ const login = async (email, password) => {
             "Accept": "application/json",
           },
           credentials: "include",
-          body: JSON.stringify({ phone: phoneNumber }),
+          body: JSON.stringify(requestBody),
         }
       );
 
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.message || "Failed to send OTP");
+        return { 
+          success: false, 
+          error: data.message,
+          errors: data.errors
+        };
       }
 
-      return { success: true };
+      return { success: true, data };
     } catch (error) {
       return { success: false, error: error.message };
     }
   };
 
-  // Verify OTP function
+  // Verify OTP function - updated to include password
   const verifyOTP = async (phoneNumber, otp, userData = null) => {
     try {
       const requestBody = {
         phone: phoneNumber,
         otp: otp,
-        ...userData,
       };
+      
+      // If userData is provided, it's for registration
+      if (userData) {
+        requestBody.name = userData.name;
+        
+        // Get password from sessionStorage if available
+        const tempPassword = sessionStorage.getItem('temp_registration_password');
+        if (tempPassword) {
+          requestBody.password = tempPassword;
+          // Clear the temporary password
+          sessionStorage.removeItem('temp_registration_password');
+        }
+      }
 
       const response = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/verify-otp`,
@@ -179,10 +289,14 @@ const login = async (email, password) => {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.message || "OTP verification failed");
+        return { 
+          success: false, 
+          error: data.message,
+          errors: data.errors
+        };
       }
 
-      // If registration is successful, store the token
+      // If verification is successful, store the token and user
       if (data.token) {
         localStorage.setItem("auth_token", data.token);
         setUser(data.user);
@@ -190,69 +304,27 @@ const login = async (email, password) => {
 
       return { success: true, user: data.user };
     } catch (error) {
+      console.error('OTP verification error:', error);
       return { success: false, error: error.message };
     }
   };
 
   // Google login function
   const googleLogin = () => {
-    // Ensure we're in a browser context
     if (typeof window === 'undefined') return;
     
     const googleLoginUrl = `${process.env.NEXT_PUBLIC_API_URL}/auth/google`;
-
-    // Use a more reliable approach with message events
-    const popupWidth = 500;
-    const popupHeight = 600;
-    const left = window.screenX + (window.outerWidth - popupWidth) / 2;
-    const top = window.screenY + (window.outerHeight - popupHeight) / 2;
-
-    const popup = window.open(
-      googleLoginUrl,
-      "googleLogin",
-      `width=${popupWidth},height=${popupHeight},left=${left},top=${top}`
-    );
-
-    if (!popup) {
-      console.error("Popup blocked or not opened");
-      return;
+    
+    // Only store redirect URL if it's not a sign-in related page
+    const currentPath = window.location.pathname;
+    if (currentPath !== '/sign-in' && currentPath !== '/sign-up' && currentPath !== '/auth/callback') {
+      localStorage.setItem('auth_redirect_url', currentPath);
+    } else {
+      // Remove any existing redirect URL if we're on auth pages
+      localStorage.removeItem('auth_redirect_url');
     }
-
-    // Still use polling as a fallback
-    const timer = setInterval(() => {
-      if (popup?.closed) {
-        clearInterval(timer);
-        checkAuth();
-      }
-    }, 500);
-
-    // Set up message event listener
-    const handleMessage = async (event) => {
-      // Extract domain from API URL to check origin
-      const apiUrlObj = new URL(process.env.NEXT_PUBLIC_API_URL || "");
-      const apiDomain = `${apiUrlObj.protocol}//${apiUrlObj.host}`;
-      
-      // Make sure the message is from our API domain
-      if (event.origin !== apiDomain) {
-        return;
-      }
-
-      // Handle the auth token from message
-      if (event.data?.token) {
-        localStorage.setItem("auth_token", event.data.token);
-        await checkAuth();
-        popup?.close();
-      }
-
-      window.removeEventListener("message", handleMessage);
-    };
-
-    window.addEventListener("message", handleMessage);
-
-    return () => {
-      clearInterval(timer);
-      window.removeEventListener("message", handleMessage);
-    };
+    
+    window.location.href = googleLoginUrl;
   };
 
   // Logout function
