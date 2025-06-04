@@ -41,10 +41,59 @@ const SignInForm = () => {
     },
   });
 
+  // Helper function to check if input is email or phone
+  const isEmail = (value) => {
+    return z.string().email().safeParse(value).success;
+  };
+
+  // Helper function to normalize Cambodian phone number
+  const normalizePhoneNumber = (phone) => {
+    // Remove any spaces, dashes, or other characters except + and digits
+    const cleaned = phone.replace(/[^\d+]/g, '');
+    
+    // If starts with 0, replace with +855
+    if (cleaned.startsWith('0')) {
+      return '+855' + cleaned.slice(1);
+    }
+    
+    // If starts with +855, keep as is
+    if (cleaned.startsWith('+855')) {
+      return cleaned;
+    }
+    
+    // If starts with 855, add +
+    if (cleaned.startsWith('855')) {
+      return '+' + cleaned;
+    }
+    
+    // If just the number without country code, add +855
+    if (cleaned.length >= 8 && cleaned.length <= 9 && !cleaned.includes('+')) {
+      return '+855' + cleaned;
+    }
+    
+    return cleaned;
+  };
+
   const onSubmit = async (values) => {
     setIsLoading(true);
     try {
-      const result = await login(values.identifier, values.password);
+      const identifier = values.identifier.trim();
+      let result;
+
+      if (isEmail(identifier)) {
+        // Email login - use the identifier field for backward compatibility
+        result = await login({
+          identifier: identifier.toLowerCase(),
+          password: values.password
+        });
+      } else {
+        // Phone login - normalize phone number and use identifier field
+        const normalizedPhone = normalizePhoneNumber(identifier);
+        result = await login({
+          identifier: normalizedPhone,
+          password: values.password
+        });
+      }
 
       if (result.success) {
         toast({
@@ -54,16 +103,39 @@ const SignInForm = () => {
         });
         router.push("/");
       } else {
-        toast({
-          title: "Error",
-          description: result.error || "Invalid credentials",
-          variant: "destructive",
-        });
+        // Handle different types of errors
+        if (result.errors) {
+          // Handle validation errors from server
+          Object.keys(result.errors).forEach((field) => {
+            if (field === 'email' || field === 'phone' || field === 'identifier') {
+              form.setError('identifier', {
+                type: "server",
+                message: Array.isArray(result.errors[field]) 
+                  ? result.errors[field][0] 
+                  : result.errors[field],
+              });
+            } else if (field === 'password') {
+              form.setError('password', {
+                type: "server",
+                message: Array.isArray(result.errors[field]) 
+                  ? result.errors[field][0] 
+                  : result.errors[field],
+              });
+            }
+          });
+        } else {
+          toast({
+            title: "Error",
+            description: result.error || "Invalid credentials",
+            variant: "destructive",
+          });
+        }
       }
     } catch (error) {
+      console.error('Login error:', error);
       toast({
         title: "Error",
-        description: "Something went wrong",
+        description: "Something went wrong. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -74,10 +146,9 @@ const SignInForm = () => {
   const handleGoogleSignIn = async () => {
     setIsGoogleLoading(true);
     try {
-      // Use the googleLogin function from AuthContext
       await googleLogin();
-      // The auth state update and navigation will be handled in AuthContext
     } catch (error) {
+      console.error('Google login error:', error);
       toast({
         title: "Google Sign In Error",
         description: "Failed to sign in with Google. Please try again.",
@@ -96,10 +167,7 @@ const SignInForm = () => {
             <h1 className="text-xl font-bold leading-tight tracking-tight text-gray-900 md:text-2xl dark:text-white">
               Sign in to your account
             </h1>
-            <form
-              onSubmit={form.handleSubmit(onSubmit)}
-              className="space-y-4 md:space-y-6"
-            >
+            <div className="space-y-4 md:space-y-6">
               <div>
                 <label
                   htmlFor="identifier"
@@ -112,12 +180,13 @@ const SignInForm = () => {
                   {...form.register("identifier")}
                   id="identifier"
                   className="bg-gray-50 border border-gray-300 text-gray-900 rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
-                  placeholder="kimthona@gmail.com or 012345678"
+                  placeholder="john@example.com or 012345678"
                 />
                 <p className="text-red-600 text-sm mt-1">
                   {form.formState.errors.identifier?.message}
                 </p>
               </div>
+
               <div>
                 <label
                   htmlFor="password"
@@ -136,21 +205,47 @@ const SignInForm = () => {
                   {form.formState.errors.password?.message}
                 </p>
               </div>
+
+              <div className="flex items-center justify-between">
+                <div className="flex items-start">
+                  <div className="flex items-center h-5">
+                    <input
+                      id="remember"
+                      aria-describedby="remember"
+                      type="checkbox"
+                      className="w-4 h-4 border border-gray-300 rounded bg-gray-50 focus:ring-3 focus:ring-primary-300 dark:bg-gray-700 dark:border-gray-600 dark:focus:ring-primary-600 dark:ring-offset-gray-800"
+                    />
+                  </div>
+                  <div className="ml-3 text-sm">
+                    <label htmlFor="remember" className="text-gray-500 dark:text-gray-300">
+                      Remember me
+                    </label>
+                  </div>
+                </div>
+                <Link
+                  href="/forgot-password"
+                  className="text-sm font-medium text-blue-600 hover:underline dark:text-primary-500"
+                >
+                  Forgot password?
+                </Link>
+              </div>
+
               <button
-                type="submit"
+                onClick={form.handleSubmit(onSubmit)}
                 disabled={isLoading}
-                className="w-full text-white bg-blue-600 hover:bg-blue-700 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-primary-600 dark:hover:bg-primary-700 dark:focus:ring-primary-800 disabled:bg-blue-400 disabled:cursor-not-allowed"
+                className="w-full text-white bg-blue-600 hover:bg-blue-700 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-primary-600 dark:hover:bg-primary-700 dark:focus:ring-primary-800 disabled:bg-blue-400 disabled:cursor-not-allowed transition-colors"
               >
                 {isLoading ? "Signing in..." : "Sign in"}
               </button>
+
               <div className="mx-auto my-4 flex w-full items-center justify-evenly before:mr-4 before:block before:h-px before:flex-grow before:bg-stone-400 after:ml-4 after:block after:h-px after:flex-grow after:bg-stone-400">
                 or
               </div>
+
               <button
-                type="button"
                 onClick={handleGoogleSignIn}
                 disabled={isGoogleLoading}
-                className="w-full text-white bg-blue-600 hover:bg-blue-700 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-primary-600 dark:hover:bg-primary-700 dark:focus:ring-primary-800 disabled:bg-blue-400 disabled:cursor-not-allowed"
+                className="w-full text-white bg-blue-600 hover:bg-blue-700 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-primary-600 dark:hover:bg-primary-700 dark:focus:ring-primary-800 disabled:bg-blue-400 disabled:cursor-not-allowed transition-colors"
               >
                 {isGoogleLoading ? (
                   "Connecting..."
@@ -182,6 +277,7 @@ const SignInForm = () => {
                   </>
                 )}
               </button>
+
               <p className="text-sm font-light text-gray-500 dark:text-gray-400">
                 Don&apos;t have an account yet?{" "}
                 <Link
@@ -191,7 +287,7 @@ const SignInForm = () => {
                   Sign up
                 </Link>
               </p>
-            </form>
+            </div>
           </div>
         </div>
       </div>
