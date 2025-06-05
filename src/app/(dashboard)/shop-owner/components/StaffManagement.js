@@ -1,181 +1,328 @@
 "use client";
 import React, { useState, useEffect } from "react";
-import { HiSearch } from "react-icons/hi";
-import EditStaff from "../edit-staff/[id]/page";
-import AddStaff from "../add-staff/page";
+import { HiSearch, HiPlus, HiPencil, HiTrash } from "react-icons/hi";
+import Swal from "sweetalert2";
 
 const StaffManagement = () => {
   const [staff, setStaff] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
-  const [sortOption, setSortOption] = useState("Oldest");
-  const [editingStaff, setEditingStaff] = useState(null);
-  const [addingStaff, setAddingStaff] = useState(false);
+  const [sortOption, setSortOption] = useState("ID Ascending");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
 
+  // Helper function to sort staff
+  const sortStaff = (staffArray, sortType) => {
+    return [...staffArray].sort((a, b) => {
+      if (sortType === "ID Ascending") {
+        return a.id - b.id;
+      } else if (sortType === "ID Descending") {
+        return b.id - a.id;
+      } else if (sortType === "Newest") {
+        return new Date(b.created_at) - new Date(a.created_at);
+      } else if (sortType === "Oldest") {
+        return new Date(a.created_at) - new Date(b.created_at);
+      } else if (sortType === "Name A-Z") {
+        return a.username?.localeCompare(b.username) || 0;
+      } else if (sortType === "Name Z-A") {
+        return b.username?.localeCompare(a.username) || 0;
+      }
+      return 0;
+    });
+  };
+
+  // Helper function to format date with time
+  const formatDateTime = (dateString) => {
+    try {
+      const date = new Date(dateString);
+      return date.toLocaleString('en-US', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true
+      });
+    } catch (error) {
+      return 'Invalid Date';
+    }
+  };
+
+  // Fetch staff members
   const fetchStaff = async () => {
     try {
-      const res = await fetch("/api/user");
-      if (!res.ok) {
-        throw new Error(`Failed to fetch staff: ${res.statusText}`);
+      setLoading(true);
+      setError(null);
+      
+      const token = localStorage.getItem("auth_token");
+      
+      if (!token) {
+        throw new Error("Authentication token not found. Please log in again.");
       }
+
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/users`, {
+        headers: {
+          "Authorization": `Bearer ${token}`,
+          "Accept": "application/json",
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+        cache: "no-store",
+      });
+
+      if (!res.ok) {
+        if (res.status === 401 || res.status === 403) {
+          throw new Error("You don't have permission to view staff members");
+        }
+        throw new Error(`Failed to fetch users: ${res.statusText}`);
+      }
+
       const data = await res.json();
+      console.log("Fetched users:", data);
+      
       // Filter to get only staff members
       const staffMembers = data.filter(user => user.role === "staff");
-      // Sort staff by the initial sort option (Oldest)
-      const sortedStaff = staffMembers.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+      console.log("Filtered staff members:", staffMembers);
+      
+      // Ensure data has proper date properties
+      const staffWithDates = staffMembers.map(member => ({
+        ...member,
+        created_at: member.created_at || member.createdAt || new Date().toISOString(),
+        updated_at: member.updated_at || member.updatedAt || new Date().toISOString()
+      }));
+      
+      // Sort staff by current sort option when fetched
+      const sortedStaff = sortStaff(staffWithDates, sortOption);
       setStaff(sortedStaff);
     } catch (error) {
       console.error("Error fetching staff:", error);
+      setError(error.message);
+    } finally {
+      setLoading(false);
     }
   };
 
   useEffect(() => {
     fetchStaff();
-  }, []);
+  }, [sortOption]);
 
   const handleSortChange = (e) => {
     const option = e.target.value;
     setSortOption(option);
-    const sortedStaff = [...staff].sort((a, b) => {
-      if (option === "Newest") {
-        return new Date(b.createdAt) - new Date(a.createdAt);
-      } else {
-        return new Date(a.createdAt) - new Date(b.createdAt);
-      }
-    });
+    // Sort current staff with new option
+    const sortedStaff = sortStaff(staff, option);
     setStaff(sortedStaff);
   };
 
-  const handleDelete = async (id) => {
+  const handleDelete = async (id, username) => {
     try {
-      const res = await fetch(`/api/user/${id}`, {
-        method: "DELETE",
+      const confirmed = await Swal.fire({
+        title: 'Are you sure?',
+        text: `This will permanently delete staff member "${username}".`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#d33',
+        cancelButtonColor: '#3085d6',
+        confirmButtonText: 'Yes, delete!',
+        cancelButtonText: 'Cancel',
       });
-      if (!res.ok) {
-        throw new Error("Failed to delete staff");
+  
+      if (confirmed.isConfirmed) {
+        setLoading(true);
+  
+        const token = localStorage.getItem("auth_token");
+  
+        if (!token) {
+          throw new Error("Authentication token not found");
+        }
+  
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/users/${id}`, {
+          method: "DELETE",
+          headers: {
+            "Authorization": `Bearer ${token}`,
+            "Accept": "application/json",
+            "Content-Type": "application/json",
+          },
+          credentials: "include",
+        });
+  
+        if (!res.ok) {
+          const errorData = await res.json();
+          throw new Error(errorData.message || "Failed to delete staff member");
+        }
+
+        // Remove staff member and maintain current sort order
+        const updatedStaff = staff.filter((member) => member.id !== id);
+        setStaff(updatedStaff);
+  
+        await Swal.fire({
+          title: 'Deleted!',
+          text: 'The staff member has been deleted.',
+          icon: 'success',
+          timer: 2000,
+          showConfirmButton: false,
+        });
       }
-      setStaff(staff.filter(member => member.id !== id));
-      fetchStaff(); // Refresh the staff list
     } catch (error) {
-      console.error("Error deleting staff:", error);
+      console.error("Error deleting staff member:", error);
+      Swal.fire({
+        title: 'Error!',
+        text: error.message,
+        icon: 'error',
+        confirmButtonText: 'OK',
+      });
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleEdit = (member) => {
-    setEditingStaff(member);
-  };
-
-  const handleBack = () => {
-    setEditingStaff(null);
-    setAddingStaff(false);
-  };
-
-  const handleUpdate = (updatedMember) => {
-    setStaff(staff.map(member => member.id === updatedMember.id ? updatedMember : member));
-    setEditingStaff(null);
-    fetchStaff(); // Refresh the staff list
-  };
-
-  const handleAdd = (newMember) => {
-    setStaff([...staff, newMember]);
-    setAddingStaff(false);
-    fetchStaff(); // Refresh the staff list
-  };
-
+  // Filter staff and maintain sort order
   const filteredStaff = staff.filter((member) =>
-    member.username && member.username.toLowerCase().includes(searchTerm.toLowerCase())
+    (member.username && member.username.toLowerCase().includes(searchTerm.toLowerCase())) ||
+    (member.email && member.email.toLowerCase().includes(searchTerm.toLowerCase())) ||
+    (member.phone && member.phone.includes(searchTerm))
   );
-
-  if (editingStaff) {
-    return <EditStaff id={editingStaff.id} onBack={handleBack} onUpdate={handleUpdate} fetchAccounts={fetchStaff} />;
-  }
-
-  if (addingStaff) {
-    return <AddStaff onBack={handleBack} onAdd={handleAdd} fetchAccounts={fetchStaff} />;
-  }
 
   return (
     <div className="p-4">
-      {/* Header Section */}
       <div className="mb-6">
-        <h1 className="text-3xl font-bold mb-2">Staff Management</h1>
+        <h1 className="text-3xl font-bold mb-2 text-black">Staff Management</h1>
         <div className="flex justify-between items-center">
-          <h2 className="text-xl font-semibold text-black">All Staff Members</h2>
+          <h2 className="text-xl font-semibold text-black">All Staff Members ({filteredStaff.length})</h2>
           <div className="flex items-center space-x-4">
-            {/* Search Bar */}
             <div className="relative">
               <HiSearch className="absolute left-3 top-2.5 text-gray-400" />
               <input
                 type="text"
-                placeholder="Search"
+                placeholder="Search staff..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 pr-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-black"
               />
             </div>
-            {/* Sort Dropdown */}
-            <div>
-              <select
-                value={sortOption}
-                onChange={handleSortChange}
-                className="border rounded-md px-3 py-2"
-              >
-                <option value="Newest">Sort by: Newest</option>
-                <option value="Oldest">Sort by: Oldest</option>
-              </select>
-            </div>
-            {/* Add New Staff Button */}
-            <button
-              onClick={() => setAddingStaff(true)}
-              className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600"
+            <select
+              value={sortOption}
+              onChange={handleSortChange}
+              className="border border-gray-300 rounded-md px-3 py-2 text-black focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
+              <option value="ID Ascending">Sort by: ID Ascending</option>
+              <option value="ID Descending">Sort by: ID Descending</option>
+              <option value="Name A-Z">Sort by: Name A-Z</option>
+              <option value="Name Z-A">Sort by: Name Z-A</option>
+              <option value="Newest">Sort by: Newest</option>
+              <option value="Oldest">Sort by: Oldest</option>
+            </select>
+            <button
+              onClick={() => {
+                // You can implement add staff functionality here
+                Swal.fire({
+                  title: 'Add New Staff',
+                  text: 'This feature can be implemented to add new staff members.',
+                  icon: 'info',
+                  confirmButtonText: 'OK',
+                });
+              }}
+              className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors duration-200 flex items-center gap-2"
+              disabled={loading}
+            >
+              <HiPlus className="w-4 h-4" />
               Add New Staff
             </button>
           </div>
         </div>
       </div>
 
-      {/* Table */}
-      <table className="w-full border-collapse border border-gray-300 text-black text-center bg-white">
-        <thead className="bg-gray-200">
-          <tr>
-            <th className="p-2 border">ID</th>
-            <th className="p-2 border">Username</th>
-            <th className="p-2 border">Email</th>
-            <th className="p-2 border">Phone</th>
-            <th className="p-2 border">Role</th>
-            <th className="p-2 border">Created At</th>
-            <th className="p-2 border">Updated At</th>
-            <th className="p-2 border">Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {filteredStaff.map((member) => (
-            <tr key={member.id}>
-              <td className="p-2 border">{member.id}</td>
-              <td className="p-2 border">{member.username}</td>
-              <td className="p-2 border">{member.email}</td>
-              <td className="p-2 border">{member.phone}</td>
-              <td className="p-2 border">{member.role}</td>
-              <td className="p-2 border">{new Date(member.createdAt).toLocaleDateString()}</td>
-              <td className="p-2 border">{new Date(member.updatedAt).toLocaleDateString()}</td>
-              <td className="p-2 border">
-                <button
-                  onClick={() => handleEdit(member)}
-                  className="bg-yellow-400 text-white hover:bg-yellow-500 hover:text-white border px-4 py-1 rounded mr-2"
-                >
-                  Edit
-                </button>
-                <button
-                  onClick={() => handleDelete(member.id)}
-                  className="bg-red-500 text-white hover:bg-red-600 hover:text-white border px-4 py-1 rounded"
-                >
-                  Delete
-                </button>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+      {loading ? (
+        <div className="flex justify-center items-center py-8">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto mb-2"></div>
+          <p className="text-gray-600">Loading staff...</p>
+        </div>
+      ) : error ? (
+        <div className="bg-red-50 border border-red-200 rounded-md p-4">
+          <p className="text-red-500">Error: {error}</p>
+          <button 
+            onClick={fetchStaff} 
+            className="mt-2 px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600"
+          >
+            Retry
+          </button>
+        </div>
+      ) : filteredStaff.length === 0 ? (
+        <div className="bg-gray-50 border border-gray-200 rounded-md p-8 text-center">
+          <p className="text-gray-600">
+            {staff.length === 0 ? "No staff members found." : "No staff members match your search."}
+          </p>
+        </div>
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="w-full border-collapse border border-gray-300 text-black text-center bg-white rounded-lg">
+            <thead className="bg-gray-100">
+              <tr>
+                <th className="p-3 border border-gray-300 font-semibold">ID</th>
+                <th className="p-3 border border-gray-300 font-semibold">Username</th>
+                <th className="p-3 border border-gray-300 font-semibold">Email</th>
+                <th className="p-3 border border-gray-300 font-semibold">Phone</th>
+                <th className="p-3 border border-gray-300 font-semibold">Role</th>
+                <th className="p-3 border border-gray-300 font-semibold">Created</th>
+                <th className="p-3 border border-gray-300 font-semibold">Updated</th>
+                <th className="p-3 border border-gray-300 font-semibold">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredStaff.map((member) => (
+                <tr key={member.id} className="hover:bg-gray-50">
+                  <td className="p-3 border border-gray-300 font-medium">{member.id}</td>
+                  <td className="p-3 border border-gray-300 font-medium">{member.username}</td>
+                  <td className="p-3 border border-gray-300">{member.email}</td>
+                  <td className="p-3 border border-gray-300">{member.phone || 'N/A'}</td>
+                  <td className="p-3 border border-gray-300">
+                    <span className="px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                      {member.role}
+                    </span>
+                  </td>
+                  <td className="p-3 border border-gray-300 text-xs">
+                    <div className="whitespace-nowrap">
+                      {formatDateTime(member.created_at)}
+                    </div>
+                  </td>
+                  <td className="p-3 border border-gray-300 text-xs">
+                    <div className="whitespace-nowrap">
+                      {formatDateTime(member.updated_at)}
+                    </div>
+                  </td>
+                  <td className="p-3 border border-gray-300">
+                    <div className="flex justify-center space-x-2">
+                      <button
+                        onClick={() => {
+                          // You can implement edit functionality here
+                          Swal.fire({
+                            title: 'Edit Staff',
+                            text: `Edit functionality for ${member.username} can be implemented here.`,
+                            icon: 'info',
+                            confirmButtonText: 'OK',
+                          });
+                        }}
+                        className="bg-yellow-500 text-white hover:bg-yellow-600 px-3 py-1 rounded text-sm transition-colors duration-200 flex items-center gap-1"
+                        disabled={loading}
+                      >
+                        <HiPencil className="w-3 h-3" />
+                        Edit
+                      </button>
+                      <button
+                        onClick={() => handleDelete(member.id, member.username)}
+                        className="bg-red-500 text-white hover:bg-red-600 px-3 py-1 rounded text-sm transition-colors duration-200 flex items-center gap-1"
+                        disabled={loading}
+                      >
+                        <HiTrash className="w-3 h-3" />
+                        Delete
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   );
 };
