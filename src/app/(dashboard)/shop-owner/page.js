@@ -1,11 +1,12 @@
 "use client";
 import React, { useState } from "react";
-import { FaClipboardCheck, FaCoffee } from "react-icons/fa";
+import { FaClipboardCheck, FaCoffee, FaGlassMartiniAlt } from "react-icons/fa";
 import { PiNotificationBold, PiHandWavingBold } from "react-icons/pi";
 import { GiSandsOfTime } from "react-icons/gi";
 import StaffManagement from './components/StaffManagement';
 import ProductManagement from './components/ProductManagement';
 import Overview from './components/Overview';
+import ToppingManagement from './components/ToppingManagement';
 
 const ShopOwnerDashboard = () => {
   const [activeTab, setActiveTab] = useState("overview");
@@ -67,6 +68,19 @@ const ShopOwnerDashboard = () => {
                 Product Management
               </button>
             </li>
+            <li>
+              <button
+                className={`w-full flex items-center px-3 py-2 rounded-md ${
+                  activeTab === "topping" ? "bg-yellow-400 text-white" : "text-gray-700 hover:text-white hover:bg-yellow-400"
+                }`}
+                onClick={() => handleTabChange("topping")}
+              >
+                <span className="mr-2">
+                  <FaGlassMartiniAlt />
+                </span>
+                Topping Management
+              </button>
+            </li>
           </ul>
         </div>
         <button
@@ -96,6 +110,7 @@ const ShopOwnerDashboard = () => {
           {activeTab === "overview" && <div><Overview /></div>}
           {activeTab === "staff" && <div><StaffManagement /></div>}
           {activeTab === "product" && <div><ProductManagement /></div>}
+          {activeTab === "topping" && <div><ToppingManagement /></div>}
           {activeTab === "profile" && <div>Profile Content</div>}
         </div>
       </div>
