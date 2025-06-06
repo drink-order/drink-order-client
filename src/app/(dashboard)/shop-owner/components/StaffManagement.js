@@ -1,12 +1,17 @@
 "use client";
 import React, { useState, useEffect } from "react";
 import { HiSearch, HiPlus, HiPencil, HiTrash } from "react-icons/hi";
+import AddStaffForm from "./AddStaffForm";
+import EditStaffForm from "./EditStaffForm";
 import Swal from "sweetalert2";
 
 const StaffManagement = () => {
   const [staff, setStaff] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [sortOption, setSortOption] = useState("ID Ascending");
+  const [showAddNewStaff, setShowAddNewStaff] = useState(false);
+  const [showEditStaff, setShowEditStaff] = useState(false);
+  const [editStaff, setEditStaff] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
@@ -22,9 +27,9 @@ const StaffManagement = () => {
       } else if (sortType === "Oldest") {
         return new Date(a.created_at) - new Date(b.created_at);
       } else if (sortType === "Name A-Z") {
-        return a.username?.localeCompare(b.username) || 0;
+        return a.name?.localeCompare(b.name) || 0;
       } else if (sortType === "Name Z-A") {
-        return b.username?.localeCompare(a.username) || 0;
+        return b.name?.localeCompare(a.name) || 0;
       }
       return 0;
     });
@@ -39,7 +44,7 @@ const StaffManagement = () => {
         month: '2-digit',
         day: '2-digit',
         hour: '2-digit',
-        minute: '2-digit',
+        minute: '2-minute',
         hour12: true
       });
     } catch (error) {
@@ -113,11 +118,11 @@ const StaffManagement = () => {
     setStaff(sortedStaff);
   };
 
-  const handleDelete = async (id, username) => {
+  const handleDelete = async (id, name) => {
     try {
       const confirmed = await Swal.fire({
         title: 'Are you sure?',
-        text: `This will permanently delete staff member "${username}".`,
+        text: `This will permanently delete staff member "${name}".`,
         icon: 'warning',
         showCancelButton: true,
         confirmButtonColor: '#d33',
@@ -135,7 +140,7 @@ const StaffManagement = () => {
           throw new Error("Authentication token not found");
         }
   
-        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/users/${id}`, {
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/shop/staff/${id}`, {
           method: "DELETE",
           headers: {
             "Authorization": `Bearer ${token}`,
@@ -175,13 +180,122 @@ const StaffManagement = () => {
     }
   };
 
+  const handleEdit = async (id) => {
+    try {
+      setLoading(true);
+      const token = localStorage.getItem("auth_token");
+      
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/shop/staff/${id}`, {
+        headers: {
+          "Authorization": token ? `Bearer ${token}` : '',
+          "Accept": "application/json",
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+        cache: "no-store",
+      });
+
+      if (!res.ok) {
+        if (res.status === 404) {
+          throw new Error("Staff member not found");
+        }
+        throw new Error("Failed to fetch staff member details");
+      }
+
+      const data = await res.json();
+      console.log("Fetched staff member for edit:", data.user);
+      setEditStaff(data.user);
+      setShowEditStaff(true);
+    } catch (error) {
+      console.error("Error fetching staff member for edit:", error);
+      Swal.fire({
+        title: 'Error!',
+        text: error.message || 'Failed to load staff member details for editing',
+        icon: 'error',
+        confirmButtonText: 'OK',
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleAddNewStaff = (newStaff) => {
+    console.log("Adding new staff member:", newStaff);
+    
+    // Add new staff member and re-sort to maintain order
+    const updatedStaff = [...staff, newStaff];
+    const sortedStaff = sortStaff(updatedStaff, sortOption);
+    setStaff(sortedStaff);
+    setShowAddNewStaff(false);
+    
+    Swal.fire({
+      title: 'Success!',
+      text: 'Staff member added successfully!',
+      icon: 'success',
+      timer: 2000,
+      showConfirmButton: false,
+    });
+  };
+
+  const handleUpdateStaff = (updatedStaff) => {
+    console.log("Updating staff member:", updatedStaff);
+    
+    // Update staff member while maintaining current sort order
+    const updatedStaffList = staff.map((member) =>
+      member.id === updatedStaff.id ? updatedStaff : member
+    );
+    
+    // Re-sort to ensure consistency
+    const sortedStaff = sortStaff(updatedStaffList, sortOption);
+    setStaff(sortedStaff);
+    
+    setShowEditStaff(false);
+    setEditStaff(null);
+    
+    Swal.fire({
+      title: 'Success!',
+      text: 'Staff member updated successfully!',
+      icon: 'success',
+      timer: 2000,
+      showConfirmButton: false,
+    });
+  };
+
+  const handleBackToList = () => {
+    setShowAddNewStaff(false);
+    setShowEditStaff(false);
+    setEditStaff(null);
+  };
+
   // Filter staff and maintain sort order
   const filteredStaff = staff.filter((member) =>
-    (member.username && member.username.toLowerCase().includes(searchTerm.toLowerCase())) ||
+    (member.name && member.name.toLowerCase().includes(searchTerm.toLowerCase())) ||
     (member.email && member.email.toLowerCase().includes(searchTerm.toLowerCase())) ||
     (member.phone && member.phone.includes(searchTerm))
   );
 
+  // If showing add form
+  if (showAddNewStaff) {
+    return (
+      <AddStaffForm 
+        onBack={handleBackToList} 
+        onAdd={handleAddNewStaff} 
+      />
+    );
+  }
+
+  // If showing edit form
+  if (showEditStaff && editStaff) {
+    return (
+      <EditStaffForm
+        staff={editStaff}
+        onBack={handleBackToList}
+        onUpdate={handleUpdateStaff}
+      />
+    );
+  }
+
+  // Main staff list view
   return (
     <div className="p-4">
       <div className="mb-6">
@@ -212,15 +326,7 @@ const StaffManagement = () => {
               <option value="Oldest">Sort by: Oldest</option>
             </select>
             <button
-              onClick={() => {
-                // You can implement add staff functionality here
-                Swal.fire({
-                  title: 'Add New Staff',
-                  text: 'This feature can be implemented to add new staff members.',
-                  icon: 'info',
-                  confirmButtonText: 'OK',
-                });
-              }}
+              onClick={() => setShowAddNewStaff(true)}
               className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors duration-200 flex items-center gap-2"
               disabled={loading}
             >
@@ -251,6 +357,14 @@ const StaffManagement = () => {
           <p className="text-gray-600">
             {staff.length === 0 ? "No staff members found." : "No staff members match your search."}
           </p>
+          {staff.length === 0 && (
+            <button
+              onClick={() => setShowAddNewStaff(true)}
+              className="mt-4 px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors duration-200"
+            >
+              Add Your First Staff Member
+            </button>
+          )}
         </div>
       ) : (
         <div className="overflow-x-auto">
@@ -258,7 +372,7 @@ const StaffManagement = () => {
             <thead className="bg-gray-100">
               <tr>
                 <th className="p-3 border border-gray-300 font-semibold">ID</th>
-                <th className="p-3 border border-gray-300 font-semibold">Username</th>
+                <th className="p-3 border border-gray-300 font-semibold">Name</th>
                 <th className="p-3 border border-gray-300 font-semibold">Email</th>
                 <th className="p-3 border border-gray-300 font-semibold">Phone</th>
                 <th className="p-3 border border-gray-300 font-semibold">Role</th>
@@ -271,7 +385,7 @@ const StaffManagement = () => {
               {filteredStaff.map((member) => (
                 <tr key={member.id} className="hover:bg-gray-50">
                   <td className="p-3 border border-gray-300 font-medium">{member.id}</td>
-                  <td className="p-3 border border-gray-300 font-medium">{member.username}</td>
+                  <td className="p-3 border border-gray-300 font-medium">{member.name}</td>
                   <td className="p-3 border border-gray-300">{member.email}</td>
                   <td className="p-3 border border-gray-300">{member.phone || 'N/A'}</td>
                   <td className="p-3 border border-gray-300">
@@ -292,15 +406,7 @@ const StaffManagement = () => {
                   <td className="p-3 border border-gray-300">
                     <div className="flex justify-center space-x-2">
                       <button
-                        onClick={() => {
-                          // You can implement edit functionality here
-                          Swal.fire({
-                            title: 'Edit Staff',
-                            text: `Edit functionality for ${member.username} can be implemented here.`,
-                            icon: 'info',
-                            confirmButtonText: 'OK',
-                          });
-                        }}
+                        onClick={() => handleEdit(member.id)}
                         className="bg-yellow-500 text-white hover:bg-yellow-600 px-3 py-1 rounded text-sm transition-colors duration-200 flex items-center gap-1"
                         disabled={loading}
                       >
@@ -308,7 +414,7 @@ const StaffManagement = () => {
                         Edit
                       </button>
                       <button
-                        onClick={() => handleDelete(member.id, member.username)}
+                        onClick={() => handleDelete(member.id, member.name)}
                         className="bg-red-500 text-white hover:bg-red-600 px-3 py-1 rounded text-sm transition-colors duration-200 flex items-center gap-1"
                         disabled={loading}
                       >
