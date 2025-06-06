@@ -1,9 +1,9 @@
 "use client";
 import React from 'react';
-import UserProfile from '../components/UserProfile';
-import SignOutButton from '../components/Signout';
+import UserProfile from '../../../components/UserProfile';
+import SignOutButton from '../../../components/Signout';
 
-const Account = () => {
+const Profile = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="container mx-auto py-8">
@@ -19,4 +19,4 @@ const Account = () => {
   );
 };
 
-export default Account;
+export default Profile;

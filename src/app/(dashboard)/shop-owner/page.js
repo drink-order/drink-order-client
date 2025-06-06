@@ -7,6 +7,7 @@ import StaffManagement from './components/StaffManagement';
 import ProductManagement from './components/ProductManagement';
 import Overview from './components/Overview';
 import ToppingManagement from './components/ToppingManagement';
+import Profile from './components/Profile';
 
 const ShopOwnerDashboard = () => {
   const [activeTab, setActiveTab] = useState("overview");
@@ -111,7 +112,7 @@ const ShopOwnerDashboard = () => {
           {activeTab === "staff" && <div><StaffManagement /></div>}
           {activeTab === "product" && <div><ProductManagement /></div>}
           {activeTab === "topping" && <div><ToppingManagement /></div>}
-          {activeTab === "profile" && <div>Profile Content</div>}
+          {activeTab === "profile" && <div><Profile /></div>}
         </div>
       </div>
     </div>

@@ -5,6 +5,7 @@ import { PiHandWavingBold } from "react-icons/pi";
 import CategoryList from './components/CategoryList';
 import AccountManagement from './components/AccountManagement';
 import SignOutButton from "@/app/components/Signout";
+import Profile from "../shop-owner/components/Profile";
 
 const AdminDashboard: React.FC = () => {
   const [activeTab, setActiveTab] = useState<string>("accounts");
@@ -81,7 +82,7 @@ const AdminDashboard: React.FC = () => {
         <div className="mt-4">
           {activeTab === "accounts" && <div><AccountManagement /></div>}
           {activeTab === "categories" && <div><CategoryList /></div>}
-          {activeTab === "profile" && <div><SignOutButton/></div>}
+          {activeTab === "profile" && <div><Profile /></div>}
         </div>
       </div>
     </div>
