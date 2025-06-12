@@ -194,7 +194,7 @@ const OrderSucContent = () => {
               </span>
             </div>
             {order.order_status === 'preparing' && (
-              <p className="text-sm opacity-80">We'll notify you when it's ready!</p>
+              <p className="text-sm opacity-80">We&apos;ll notify you when it&apos;s ready!</p>
             )}
           </div>
 
@@ -303,7 +303,7 @@ const OrderSucContent = () => {
                 </span>
               </div>
               <p className="text-orange-600 text-sm">
-                We're working on your delicious drinks! This page will update automatically.
+                We&apos;re working on your delicious drinks! This page will update automatically.
               </p>
             </div>
           )}
