@@ -1,273 +1,204 @@
-// hooks/useNotifications.js (Fixed & Clean)
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { useAuth } from '../app/context/AuthContext';
 
-const useNotifications = (options = {}) => {
-  const {
-    pollingInterval = 30000, // 30 seconds default
-    autoStart = true,
-    onNewNotification = null,
-  } = options;
-
-  const { user } = useAuth();
+const useNotifications = ({ 
+  pollingInterval = 30000, 
+  autoStart = true, 
+  onNewNotification = null 
+} = {}) => {
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [lastTimestamp, setLastTimestamp] = useState(null);
+  const [lastFetchTime, setLastFetchTime] = useState(null);
   
-  const intervalRef = useRef(null);
-  const isPollingRef = useRef(false);
+  // Keep track of known notification IDs to detect new ones
+  const knownNotificationIds = useRef(new Set());
+  const isInitialLoad = useRef(true);
 
-  // Get token directly from localStorage
-  const getToken = useCallback(() => {
-    if (typeof window === 'undefined') return null;
-    return localStorage.getItem("auth_token");
-  }, []);
-
-  // Utility function to deduplicate notifications
-  const deduplicateNotifications = useCallback((notifications) => {
-    const seen = new Set();
-    return notifications.filter(notification => {
-      if (seen.has(notification.id)) {
-        return false;
-      }
-      seen.add(notification.id);
-      return true;
-    });
-  }, []);
-
-  const apiCall = useCallback(async (endpoint, options = {}) => {
-    const token = getToken();
-    
-    if (!token) {
-      throw new Error('No authentication token');
-    }
-    
-    const url = `${process.env.NEXT_PUBLIC_API_URL}${endpoint}`;
-    
-    const response = await fetch(url, {
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Accept': 'application/json',
-        'Content-Type': 'application/json',
-        ...options.headers,
-      },
-      credentials: 'include',
-      ...options,
-    });
-
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-
-    const data = await response.json();
-    return data;
-  }, [getToken]);
-
-  // Initial load of notifications
-  const loadNotifications = useCallback(async () => {
-    const token = getToken();
-    
-    if (!user || !token) {
-      return;
-    }
-    
+  const fetchNotifications = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
-      
-      const data = await apiCall('/notifications');
-      
-      // Set notifications, avoiding duplicates if there are already some loaded
-      setNotifications(prev => {
-        if (prev.length === 0) {
-          return data.notifications || [];
-        }
-        // If we already have notifications, merge and deduplicate
-        const allNotifications = [...(data.notifications || []), ...prev];
-        return deduplicateNotifications(allNotifications);
+
+      const token = localStorage.getItem('auth_token');
+      if (!token) {
+        return;
+      }
+
+      // Use the latest endpoint for efficient polling
+      const endpoint = lastFetchTime 
+        ? `/notifications/latest?since=${lastFetchTime}`
+        : '/notifications';
+
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}${endpoint}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
       });
-      
+
+      if (!response.ok) {
+        if (response.status === 401) {
+          localStorage.removeItem('auth_token');
+          return;
+        }
+        throw new Error(`HTTP ${response.status}`);
+      }
+
+      const data = await response.json();
+
+      // Update state
+      setNotifications(data.notifications || []);
       setUnreadCount(data.unread_count || 0);
-      setLastTimestamp(data.timestamp);
+      setLastFetchTime(data.timestamp);
+
+      // 🚀 TRIGGER POPUPS FOR NEW NOTIFICATIONS
+      if (!isInitialLoad.current && data.notifications && data.notifications.length > 0) {
+        // Check for truly new notifications
+        const newNotifications = data.notifications.filter(notification => 
+          !knownNotificationIds.current.has(notification.id)
+        );
+
+        // Trigger popup for each new notification
+        newNotifications.forEach(notification => {          
+          // Call the callback if provided (this connects to your NotificationContext)
+          if (onNewNotification && typeof onNewNotification === 'function') {
+            onNewNotification(notification);
+          }
+          
+          // Add to known IDs
+          knownNotificationIds.current.add(notification.id);
+        });
+      }
+
+      // Update known notification IDs for all notifications
+      if (data.notifications) {
+        data.notifications.forEach(notification => {
+          knownNotificationIds.current.add(notification.id);
+        });
+      }
+
+      // Mark initial load as complete
+      isInitialLoad.current = false;
+
     } catch (err) {
       setError(err.message);
     } finally {
       setLoading(false);
     }
-  }, [user, apiCall, getToken, deduplicateNotifications]);
+  }, [lastFetchTime, onNewNotification]);
 
-  // Poll for new notifications
-  const pollNotifications = useCallback(async () => {
-    const token = getToken();
-    
-    if (!user || !token || !lastTimestamp) {
-      return;
-    }
-    
-    try {
-      const data = await apiCall(`/notifications/latest?since=${encodeURIComponent(lastTimestamp)}`);
-      
-      if (data.has_new && data.notifications.length > 0) {
-        // Add new notifications to the beginning of the list, avoiding duplicates
-        setNotifications(prev => {
-          const existingIds = new Set(prev.map(n => n.id));
-          const newNotifications = data.notifications.filter(n => !existingIds.has(n.id));
-          return [...newNotifications, ...prev];
-        });
-        
-        // Call callback for new notifications
-        if (onNewNotification) {
-          data.notifications.forEach(notification => {
-            onNewNotification(notification);
-          });
-        }
-      }
-      
-      setUnreadCount(data.unread_count || 0);
-      setLastTimestamp(data.timestamp);
-    } catch (err) {
-      // Don't update error state for polling failures to avoid UI disruption
-    }
-  }, [user, lastTimestamp, apiCall, onNewNotification, getToken]);
-
-  // Poll only unread count (lightweight)
-  const pollUnreadCount = useCallback(async () => {
-    const token = getToken();
-    
-    if (!user || !token) return;
-    
-    try {
-      const data = await apiCall('/notifications/unread-count');
-      setUnreadCount(data.unread_count || 0);
-    } catch (err) {
-      // Silent fail for polling
-    }
-  }, [user, apiCall, getToken]);
-
-  // Start polling
-  const startPolling = useCallback(() => {
-    if (isPollingRef.current || !user) {
-      return;
-    }
-    
-    isPollingRef.current = true;
-    
-    intervalRef.current = setInterval(() => {
-      // Use lightweight polling by default, full polling occasionally
-      if (Math.random() > 0.8) { // 20% chance for full poll
-        pollNotifications();
-      } else {
-        pollUnreadCount();
-      }
-    }, pollingInterval);
-  }, [user, pollingInterval, pollNotifications, pollUnreadCount]);
-
-  // Stop polling
-  const stopPolling = useCallback(() => {
-    if (intervalRef.current) {
-      clearInterval(intervalRef.current);
-      intervalRef.current = null;
-    }
-    isPollingRef.current = false;
-  }, []);
-
-  // Mark notification as read
   const markAsRead = useCallback(async (notificationId) => {
     try {
-      const data = await apiCall(`/notifications/${notificationId}/read`, {
-        method: 'PATCH',
-      });
-      
-      // Update local state
-      setNotifications(prev => 
-        prev.map(notif => 
-          notif.id === notificationId 
-            ? { ...notif, read: true }
-            : notif
-        )
-      );
-      setUnreadCount(data.unread_count || 0);
-    } catch (err) {
-      throw err;
-    }
-  }, [apiCall]);
+      const token = localStorage.getItem('auth_token');
+      if (!token) return;
 
-  // Mark all as read
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/notifications/${notificationId}/read`,
+        {
+          method: 'PATCH',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+
+      if (response.ok) {
+        const data = await response.json();
+        setUnreadCount(data.unread_count || 0);
+        
+        // Update the notification in the list
+        setNotifications(prev => 
+          prev.map(notification => 
+            notification.id === notificationId 
+              ? { ...notification, read: true }
+              : notification
+          )
+        );
+      }
+    } catch (err) {
+    }
+  }, []);
+
   const markAllAsRead = useCallback(async () => {
     try {
-      await apiCall('/notifications/read-all', {
-        method: 'PATCH',
-      });
-      
-      // Update local state
-      setNotifications(prev => 
-        prev.map(notif => ({ ...notif, read: true }))
+      const token = localStorage.getItem('auth_token');
+      if (!token) return;
+
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/notifications/read-all`,
+        {
+          method: 'PATCH',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        }
       );
-      setUnreadCount(0);
-    } catch (err) {
-      throw err;
-    }
-  }, [apiCall]);
 
-  // Initialize
-  useEffect(() => {
-    const token = getToken();
-    if (user && token && autoStart) {
-      loadNotifications();
-    }
-  }, [user, autoStart, loadNotifications, getToken]);
-
-  // Start/stop polling based on user presence and autoStart
-  useEffect(() => {
-    const token = getToken();
-    if (user && token && autoStart) {
-      startPolling();
-    } else {
-      stopPolling();
-    }
-
-    return stopPolling;
-  }, [user, autoStart, startPolling, stopPolling, getToken]);
-
-  // Handle page visibility changes
-  useEffect(() => {
-    const handleVisibilityChange = () => {
-      const token = getToken();
-      if (document.hidden) {
-        stopPolling();
-      } else if (user && token && autoStart) {
-        loadNotifications(); // Refresh when page becomes visible
-        startPolling();
+      if (response.ok) {
+        setUnreadCount(0);
+        setNotifications(prev => 
+          prev.map(notification => ({ ...notification, read: true }))
+        );
       }
-    };
-
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-    };
-  }, [user, autoStart, loadNotifications, startPolling, stopPolling, getToken]);
-
-  // Clean up duplicates if they exist
-  useEffect(() => {
-    const uniqueNotifications = deduplicateNotifications(notifications);
-    if (uniqueNotifications.length !== notifications.length) {
-      setNotifications(uniqueNotifications);
+    } catch (err) {
     }
-  }, [notifications, deduplicateNotifications]);
+  }, []);
+
+  // Test function to create backend notification
+  const sendTestNotification = useCallback(async () => {
+    try {
+      const token = localStorage.getItem('auth_token');
+      if (!token) return;
+
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/notifications/test`,
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+
+      if (response.ok) {
+        const data = await response.json();
+        
+        // Force a fetch to get the new notification
+        setTimeout(() => {
+          fetchNotifications();
+        }, 1000);
+      } else {
+      }
+    } catch (err) {
+    }
+  }, [fetchNotifications]);
+
+  // Polling effect
+  useEffect(() => {
+    if (!autoStart) return;
+
+    // Initial fetch
+    fetchNotifications();
+
+    // Set up polling
+    const interval = setInterval(fetchNotifications, pollingInterval);
+
+    return () => clearInterval(interval);
+  }, [fetchNotifications, pollingInterval, autoStart]);
 
   return {
     notifications,
     unreadCount,
     loading,
     error,
+    fetchNotifications,
     markAsRead,
     markAllAsRead,
-    loadNotifications,
-    startPolling,
-    stopPolling,
-    isPolling: isPollingRef.current,
+    sendTestNotification,
   };
 };
 
