@@ -50,6 +50,7 @@ const Order = () => {
         }
 
         const data = await response.json();
+        console.log('Orders data:', data); // Debug log
         setOrders(data.orders || []);
       } catch (error) {
         console.error('Error fetching orders:', error);
@@ -106,6 +107,31 @@ const Order = () => {
     }
   };
 
+  const getSugarLevelDisplay = (sugarLevel) => {
+    const levels = {
+      '0%': 'No Sugar',
+      '25%': 'Light Sweet',
+      '50%': 'Half Sweet',
+      '75%': 'Less Sweet',
+      '100%': 'Regular'
+    };
+    return levels[sugarLevel] || 'Regular';
+  };
+
+  // Helper function to calculate item total price including toppings
+  const calculateItemTotal = (item) => {
+    const basePrice = parseFloat(item.unit_price) * item.quantity;
+    const toppingsTotal = (item.toppings || []).reduce((sum, topping) => {
+      return sum + (parseFloat(topping.price) * item.quantity);
+    }, 0);
+    return basePrice + toppingsTotal;
+  };
+
+  // Helper function to get order items (handle both possible API response formats)
+  const getOrderItems = (order) => {
+    return order.order_items || order.orderItems || [];
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -152,7 +178,6 @@ const Order = () => {
                   <p className="text-gray-500 mb-4">You haven't placed any orders yet.</p>
                   <button
                     onClick={() => {
-                      // Ensure navbar shows when going to home
                       window.dispatchEvent(new CustomEvent('drinkDetailsClose'));
                       router.push('/');
                     }}
@@ -164,41 +189,47 @@ const Order = () => {
               </div>
             ) : (
               <div className="space-y-4">
-                {orders.map((order) => (
-                  <div
-                    key={order.id}
-                    onClick={() => handleOrderClick(order)}
-                    className="bg-white rounded-lg shadow-md p-4 cursor-pointer hover:shadow-lg transition-shadow"
-                  >
-                    <div className="flex justify-between items-start mb-3">
-                      <div>
-                        <h3 className="font-semibold text-gray-800">Order #{order.id}</h3>
-                        <p className="text-sm text-gray-600">{formatDateTime(order.created_at)}</p>
-                      </div>
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(order.order_status)}`}>
-                        {getStatusText(order.order_status)}
-                      </span>
-                    </div>
-                    
-                    <div className="border-t border-gray-200 pt-3">
-                      <div className="flex justify-between items-center">
+                {orders.map((order) => {
+                  const orderItems = getOrderItems(order);
+                  return (
+                    <div
+                      key={order.id}
+                      onClick={() => handleOrderClick(order)}
+                      className="bg-white rounded-lg shadow-md p-4 cursor-pointer hover:shadow-lg transition-shadow"
+                    >
+                      <div className="flex justify-between items-start mb-3">
                         <div>
-                          <p className="text-sm text-gray-600">
-                            {order.order_items.length} item{order.order_items.length !== 1 ? 's' : ''}
-                          </p>
-                          <p className="text-sm text-gray-600">
-                            {order.order_items.slice(0, 2).map(item => item.product_size.product.name).join(', ')}
-                            {order.order_items.length > 2 && ` +${order.order_items.length - 2} more`}
-                          </p>
+                          <h3 className="font-semibold text-gray-800">Order #{order.id}</h3>
+                          <p className="text-sm text-gray-600">{formatDateTime(order.created_at)}</p>
                         </div>
-                        <div className="text-right">
-                          <p className="font-bold text-gray-800">${parseFloat(order.total_price).toFixed(2)}</p>
-                          <p className="text-xs text-gray-500">View Details →</p>
+                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(order.order_status)}`}>
+                          {getStatusText(order.order_status)}
+                        </span>
+                      </div>
+                      
+                      <div className="border-t border-gray-200 pt-3">
+                        <div className="flex justify-between items-center">
+                          <div>
+                            <p className="text-sm text-gray-600">
+                              {orderItems.length} item{orderItems.length !== 1 ? 's' : ''}
+                            </p>
+                            <p className="text-sm text-gray-600">
+                              {orderItems.slice(0, 2).map(item => {
+                                const product = item.product_size?.product || item.productSize?.product;
+                                return product?.name || 'Unknown Product';
+                              }).join(', ')}
+                              {orderItems.length > 2 && ` +${orderItems.length - 2} more`}
+                            </p>
+                          </div>
+                          <div className="text-right">
+                            <p className="font-bold text-gray-800">${parseFloat(order.total_price).toFixed(2)}</p>
+                            <p className="text-xs text-gray-500">View Details →</p>
+                          </div>
                         </div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>
@@ -223,6 +254,9 @@ const Order = () => {
                 <div>
                   <h2 className="text-lg font-semibold text-gray-800">Order #{selectedOrder.id}</h2>
                   <p className="text-gray-600">{formatDateTime(selectedOrder.created_at)}</p>
+                  {selectedOrder.customer_name && (
+                    <p className="text-sm text-gray-500">Customer: {selectedOrder.customer_name}</p>
+                  )}
                 </div>
                 <span className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(selectedOrder.order_status)}`}>
                   {getStatusText(selectedOrder.order_status)}
@@ -232,34 +266,56 @@ const Order = () => {
               {/* Order Items */}
               <div className="space-y-4 mb-6">
                 <h3 className="font-semibold text-gray-800">Items Ordered:</h3>
-                {selectedOrder.order_items.map((item, index) => (
-                  <div key={index} className="border border-gray-200 rounded-lg p-4">
-                    <div className="flex justify-between items-start">
-                      <div className="flex-1">
-                        <h4 className="font-medium text-gray-800 mb-1">
-                          {item.product_size.product.name}
-                        </h4>
-                        <div className="text-sm text-gray-600 space-y-1">
-                          <p>Size: <span className="font-medium">{item.product_size.size}</span></p>
-                          <p>Quantity: <span className="font-medium">{item.quantity}</span></p>
-                          <p>Unit Price: <span className="font-medium">${parseFloat(item.unit_price).toFixed(2)}</span></p>
-                          {item.toppings && item.toppings.length > 0 && (
-                            <p>Toppings: <span className="font-medium">
-                              {item.toppings.map(t => `${t.topping.name} (+${parseFloat(t.price).toFixed(2)})`).join(', ')}
-                            </span></p>
-                          )}
+                {getOrderItems(selectedOrder).map((item, index) => {
+                  const product = item.product_size?.product || item.productSize?.product;
+                  const size = item.product_size?.size || item.productSize?.size;
+                  const itemTotal = calculateItemTotal(item);
+                  
+                  return (
+                    <div key={index} className="border border-gray-200 rounded-lg p-4">
+                      <div className="flex justify-between items-start">
+                        <div className="flex-1">
+                          <div className="flex justify-between items-start mb-2">
+                            <h4 className="font-medium text-gray-800">
+                              {product?.name || 'Unknown Product'}
+                            </h4>
+                            <span className="font-medium text-gray-800 ml-4">
+                              {item.quantity > 1 ? `${item.quantity} x ` : ''}${parseFloat(item.unit_price).toFixed(2)}
+                            </span>
+                          </div>
+                          <div className="text-sm text-gray-600 space-y-1">
+                            <p>Size: <span className="font-medium capitalize">{size}</span></p>
+                            
+                            {/* Sugar Level Display */}
+                            {item.sugar_level && (
+                              <p>Sugar Level: <span className="font-medium">
+                                {getSugarLevelDisplay(item.sugar_level)} ({item.sugar_level})
+                              </span></p>
+                            )}
+                                                        
+                            {/* Toppings with Individual Prices */}
+                            {item.toppings && item.toppings.length > 0 && (
+                              <div>
+                                <p className="font-medium text-gray-700">Add-ons:</p>
+                                <div className="ml-2 space-y-1">
+                                  {item.toppings.map((topping, tIndex) => (
+                                    <p key={tIndex} className="text-xs">
+                                      • {topping.topping?.name || 'Unknown Topping'} 
+                                      <span className="text-gray-500"> (+${parseFloat(topping.price).toFixed(2)} each)</span>
+                                      {item.quantity > 1 && (
+                                        <span className="text-gray-500"> = ${(parseFloat(topping.price) * item.quantity).toFixed(2)}</span>
+                                      )}
+                                    </p>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                          </div>
                         </div>
                       </div>
-                      <div className="text-right ml-4">
-                        <p className="font-semibold text-gray-800">
-                          ${(parseFloat(item.unit_price) * item.quantity + 
-                             (item.toppings?.reduce((sum, t) => sum + parseFloat(t.price), 0) || 0) * item.quantity
-                            ).toFixed(2)}
-                        </p>
-                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
 
               {/* Order Summary */}
@@ -286,9 +342,19 @@ const Order = () => {
                 </div>
               )}
 
+              {selectedOrder.order_status === 'preparing' && (
+                <div className="bg-orange-50 border border-orange-200 rounded-lg p-4 mb-4">
+                  <div className="flex items-center">
+                    <svg className="w-5 h-5 text-orange-600 mr-2 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
+                    <span className="text-orange-800 font-semibold">Your order is being prepared...</span>
+                  </div>
+                </div>
+              )}
+
               <button
                 onClick={() => {
-                  // Ensure navbar shows when going to home
                   window.dispatchEvent(new CustomEvent('drinkDetailsClose'));
                   router.push('/');
                 }}
@@ -296,19 +362,6 @@ const Order = () => {
               >
                 Order More Drinks
               </button>
-
-              {selectedOrder.order_status === 'completed' && (
-                <button
-                  onClick={() => {
-                    // Navigate to reorder functionality - could copy this order
-                    window.dispatchEvent(new CustomEvent('drinkDetailsClose'));
-                    router.push('/');
-                  }}
-                  className="w-full bg-green-500 text-white py-3 rounded-lg font-semibold hover:bg-green-600 transition-colors"
-                >
-                  Reorder This
-                </button>
-              )}
             </div>
           </div>
         )}

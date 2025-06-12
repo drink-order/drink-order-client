@@ -1,9 +1,10 @@
 "use client";
 import React, { useState } from "react";
-import { FaClipboardCheck, FaCoffee } from "react-icons/fa";
+import { FaClipboardCheck, FaCoffee, FaQrcode } from "react-icons/fa";
 import { PiHandWavingBold } from "react-icons/pi";
 import CategoryList from './components/CategoryList';
 import AccountManagement from './components/AccountManagement';
+import InvitationManagement from './components/InvitationManagement';
 import SignOutButton from "@/app/components/Signout";
 import Profile from "../shop-owner/components/Profile";
 
@@ -54,6 +55,19 @@ const AdminDashboard: React.FC = () => {
                 Categories
               </button>
             </li>
+            <li>
+              <button
+                className={`w-full flex items-center px-3 py-2 rounded-md ${
+                  activeTab === "invitations" ? "bg-yellow-400 text-white" : "text-gray-700 hover:text-white hover:bg-yellow-400"
+                }`}
+                onClick={() => handleTabChange("invitations")}
+              >
+                <span className="mr-2">
+                  <FaQrcode />
+                </span>
+                Guest Access
+              </button>
+            </li>
           </ul>
         </div>
         <button
@@ -82,6 +96,7 @@ const AdminDashboard: React.FC = () => {
         <div className="mt-4">
           {activeTab === "accounts" && <div><AccountManagement /></div>}
           {activeTab === "categories" && <div><CategoryList /></div>}
+          {activeTab === "invitations" && <div><InvitationManagement /></div>}
           {activeTab === "profile" && <div><Profile /></div>}
         </div>
       </div>
