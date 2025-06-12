@@ -3,17 +3,24 @@ import React, { useState, useEffect } from "react";
 import { HiSearch } from "react-icons/hi";
 import AddProductForm from "./AddProductForm";
 import EditProductForm from "./EditProductForm";
+import { useProducts } from "../context/ProductsContext";
 import Swal from "sweetalert2";
 
 const ProductManagement = () => {
-  const [products, setProducts] = useState([]);
+  // Get products from context instead of local state
+  const { 
+    products: contextProducts, 
+    loading: contextLoading, 
+    error: contextError, 
+    refreshData 
+  } = useProducts();
+  
   const [searchTerm, setSearchTerm] = useState("");
   const [sortOption, setSortOption] = useState("ID Ascending");
   const [showAddNewDrink, setShowAddNewDrink] = useState(false);
   const [showEditProduct, setShowEditProduct] = useState(false);
   const [editProduct, setEditProduct] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
 
   // Helper function to fix image URLs
   const getImageUrl = (imageUrl) => {
@@ -51,54 +58,22 @@ const ProductManagement = () => {
     }
   };
 
-  useEffect(() => {
-    const getProducts = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-
-        const token = localStorage.getItem("auth_token");
-
-        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/products`, {
-          headers: {
-            Authorization: token ? `Bearer ${token}` : "",
-            Accept: "application/json",
-            "Content-Type": "application/json",
-          },
-          credentials: "include",
-          cache: "no-store",
-        });
-
-        if (!res.ok) {
-          if (res.status === 401 || res.status === 403) {
-            throw new Error("You don't have permission to view products");
-          }
-          throw new Error("Failed to fetch products");
-        }
-
-        const data = await res.json();
-        console.log("Fetched products:", data.products);
-        
-        // Sort products by current sort option when fetched
-        const sortedProducts = sortProducts(data.products || [], sortOption);
-        setProducts(sortedProducts);
-      } catch (error) {
-        console.error("Error loading products: ", error);
-        setError(error.message);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    getProducts();
-  }, [sortOption]); // Added sortOption as dependency
+  // Convert context products to the format expected by this component
+  const convertedProducts = contextProducts.map(product => ({
+    id: product.id,
+    name: product.title, // Convert title back to name for admin interface
+    image_url: product.image,
+    category_id: product.categoryId,
+    sizes: product.sizes,
+    toppings: product.toppings,
+    category: product.category,
+    is_available: product.isAvailable,
+    created_at: product.created_at || new Date().toISOString(),
+    updated_at: product.updated_at || new Date().toISOString()
+  }));
 
   const handleSortChange = (e) => {
-    const option = e.target.value;
-    setSortOption(option);
-    // Sort current products with new option
-    const sortedProducts = sortProducts(products, option);
-    setProducts(sortedProducts);
+    setSortOption(e.target.value);
   };
 
   const handleDelete = async (id) => {
@@ -137,9 +112,8 @@ const ProductManagement = () => {
           throw new Error("Failed to delete product");
         }
 
-        // Remove product and maintain current sort order
-        const updatedProducts = products.filter((product) => product.id !== id);
-        setProducts(updatedProducts);
+        // Refresh the context data to update the cache
+        await refreshData();
   
         await Swal.fire({
           title: 'Deleted!',
@@ -201,13 +175,12 @@ const ProductManagement = () => {
     }
   };
 
-  const handleAddNewDrink = (newProduct) => {
-    console.log("Adding new product:", newProduct);
+  const handleAddNewDrink = async (newProduct) => {
+    console.log("Product added:", newProduct);
     
-    // Add new product and re-sort to maintain order
-    const updatedProducts = [...products, newProduct];
-    const sortedProducts = sortProducts(updatedProducts, sortOption);
-    setProducts(sortedProducts);
+    // Refresh the context data to include the new product
+    await refreshData();
+    
     setShowAddNewDrink(false);
     
     Swal.fire({
@@ -219,17 +192,11 @@ const ProductManagement = () => {
     });
   };
 
-  const handleUpdateProduct = (updatedProduct) => {
-    console.log("Updating product:", updatedProduct);
+  const handleUpdateProduct = async (updatedProduct) => {
+    console.log("Product updated:", updatedProduct);
     
-    // Update product while maintaining current sort order
-    const updatedProducts = products.map((product) =>
-      product.id === updatedProduct.id ? updatedProduct : product
-    );
-    
-    // Re-sort to ensure consistency (but position should remain the same for ID-based sorting)
-    const sortedProducts = sortProducts(updatedProducts, sortOption);
-    setProducts(sortedProducts);
+    // Refresh the context data to reflect the update
+    await refreshData();
     
     setShowEditProduct(false);
     setEditProduct(null);
@@ -249,8 +216,9 @@ const ProductManagement = () => {
     setEditProduct(null);
   };
 
-  // Filter products and maintain sort order
-  const filteredProducts = products.filter((product) =>
+  // Sort and filter products
+  const sortedProducts = sortProducts(convertedProducts, sortOption);
+  const filteredProducts = sortedProducts.filter((product) =>
     product.name?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
@@ -308,24 +276,32 @@ const ProductManagement = () => {
             <button
               onClick={() => setShowAddNewDrink(true)}
               className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors duration-200"
-              disabled={loading}
+              disabled={loading || contextLoading}
             >
               Add New Product
+            </button>
+            <button
+              onClick={refreshData}
+              className="px-4 py-2 bg-green-500 text-white rounded-md hover:bg-green-600 transition-colors duration-200"
+              disabled={loading || contextLoading}
+              title="Refresh product list"
+            >
+              Refresh
             </button>
           </div>
         </div>
       </div>
 
-      {loading ? (
+      {(loading || contextLoading) ? (
         <div className="flex justify-center items-center py-8">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto mb-2"></div>
           <p className="text-gray-600">Loading products...</p>
         </div>
-      ) : error ? (
+      ) : contextError ? (
         <div className="bg-red-50 border border-red-200 rounded-md p-4">
-          <p className="text-red-500">Error: {error}</p>
+          <p className="text-red-500">Error: {contextError}</p>
           <button 
-            onClick={() => window.location.reload()} 
+            onClick={refreshData} 
             className="mt-2 px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600"
           >
             Retry
@@ -334,7 +310,7 @@ const ProductManagement = () => {
       ) : filteredProducts.length === 0 ? (
         <div className="bg-gray-50 border border-gray-200 rounded-md p-8 text-center">
           <p className="text-gray-600">
-            {products.length === 0 ? "No products found. Add your first product!" : "No products match your search."}
+            {convertedProducts.length === 0 ? "No products found. Add your first product!" : "No products match your search."}
           </p>
         </div>
       ) : (
@@ -423,14 +399,14 @@ const ProductManagement = () => {
                         <button
                           onClick={() => handleEdit(product.id)}
                           className="bg-yellow-500 text-white hover:bg-yellow-600 px-3 py-1 rounded text-sm transition-colors duration-200"
-                          disabled={loading}
+                          disabled={loading || contextLoading}
                         >
                           Edit
                         </button>
                         <button
                           onClick={() => handleDelete(product.id)}
                           className="bg-red-500 text-white hover:bg-red-600 px-3 py-1 rounded text-sm transition-colors duration-200"
-                          disabled={loading}
+                          disabled={loading || contextLoading}
                         >
                           Delete
                         </button>
