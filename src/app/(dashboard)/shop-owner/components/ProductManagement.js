@@ -3,7 +3,7 @@ import React, { useState, useEffect } from "react";
 import { HiSearch } from "react-icons/hi";
 import AddProductForm from "./AddProductForm";
 import EditProductForm from "./EditProductForm";
-import { useProducts } from "../context/ProductsContext";
+import { useProducts } from "../../../context/ProductsContext";
 import Swal from "sweetalert2";
 
 const ProductManagement = () => {

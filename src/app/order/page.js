@@ -175,7 +175,7 @@ const Order = () => {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
                   </svg>
                   <h3 className="text-lg font-semibold text-gray-700 mb-2">No Orders Yet</h3>
-                  <p className="text-gray-500 mb-4">You haven't placed any orders yet.</p>
+                  <p className="text-gray-500 mb-4">You haven&apos;t placed any orders yet.</p>
                   <button
                     onClick={() => {
                       window.dispatchEvent(new CustomEvent('drinkDetailsClose'));
