@@ -1,10 +1,11 @@
 import { AuthProvider } from "./context/AuthContext";
+import { GuestProvider } from "./context/GuestContext";
 import NavBarWrapper from "./components/NavBarWrapper";
+import { CartProvider } from "./context/CartContext";
+import { OrderProvider } from "./context/OrderContext";
 import { Toaster } from "@/components/ui/toaster";
-import { CartProvider } from './context/CartContext';
 import localFont from "next/font/local";
 import "./globals.css";
-import { OrderProvider } from "./context/OrderContext";
 
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
@@ -26,20 +27,22 @@ export default function RootLayout({
   children
 }) {
   return (
-    <AuthProvider>
-      <html lang="en">
-        <body
-          className={`${geistSans.variable} ${geistMono.variable} antialiased pd-16`}
-        >
-          <OrderProvider>
-            <CartProvider>
-              {children}
-              <NavBarWrapper />
-              <Toaster />
-            </CartProvider>
-          </OrderProvider>
-        </body>
-      </html>
-    </AuthProvider>
+    <html lang="en">
+      <body
+        className={`${geistSans.variable} ${geistMono.variable} antialiased pd-16`}
+      >
+        <AuthProvider>
+          <GuestProvider>
+            <OrderProvider>
+              <CartProvider>
+                {children}
+                <NavBarWrapper />
+                <Toaster />
+              </CartProvider>
+            </OrderProvider>
+          </GuestProvider>
+        </AuthProvider>
+      </body>
+    </html>
   );
 }

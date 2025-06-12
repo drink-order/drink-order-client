@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect } from "react";
 import CounterInput from "./CounterInput";
-import Button from "./Button";
 import { useAuth } from "../context/AuthContext";
 import { useCart } from "../context/CartContext";
 import { useRouter } from "next/navigation";
@@ -12,6 +11,7 @@ const DrinkDetails = ({ drink, onBack }) => {
   const [quantity, setQuantity] = useState(1);
   const [selectedSize, setSelectedSize] = useState(null);
   const [selectedToppings, setSelectedToppings] = useState([]);
+  const [selectedSugarLevel, setSelectedSugarLevel] = useState("100%"); // Add sugar level state
   const [canOrder, setCanOrder] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
@@ -19,6 +19,15 @@ const DrinkDetails = ({ drink, onBack }) => {
   const { user } = useAuth();
   const { addToCart } = useCart();
   const router = useRouter();
+
+  // Sugar level options
+  const sugarLevels = [
+    { value: "0%", label: "No Sugar", description: "Perfect for health-conscious choices" },
+    { value: "25%", label: "Light Sweet", description: "Just a hint of sweetness" },
+    { value: "50%", label: "Half Sweet", description: "Balanced and refreshing" },
+    { value: "75%", label: "Less Sweet", description: "Mildly sweet taste" },
+    { value: "100%", label: "Regular", description: "Full sweetness as intended" }
+  ];
 
   // Initialize with first available size
   useEffect(() => {
@@ -37,7 +46,6 @@ const DrinkDetails = ({ drink, onBack }) => {
       }
 
       // For demo purposes, assume user can always order
-      // You can implement your location logic here
       setCanOrder(true);
     };
 
@@ -62,16 +70,34 @@ const DrinkDetails = ({ drink, onBack }) => {
 
     setLoading(true);
     try {
+      // Get session data from localStorage (only for guests)
+      const sessionId = user?.role === 'guest' ? localStorage.getItem("session_id") : null;
+      const tableNumber = user?.role === 'guest' ? localStorage.getItem("table_number") : null;
+      
+      console.log("Session data:", { sessionId, tableNumber, userRole: user?.role });
+      
       // Format order data according to your Laravel API structure
       const orderData = {
         items: [{
           product_size_id: selectedSize.id,
           quantity: quantity,
+          sugar_level: selectedSugarLevel, // Add sugar level to order data
           toppings: selectedToppings.map(topping => ({
             topping_id: topping.topping.id
           }))
         }]
       };
+
+      // Add session data for guest users with proper validation
+      if (user?.role === 'guest') {
+        if (!sessionId || !tableNumber) {
+          setErrorMessage("Session information is missing. Please refresh and try again.");
+          return;
+        }
+        orderData.session_id = sessionId;
+        orderData.table_number = parseInt(tableNumber);
+        orderData.customer_name = user.name || "Guest Customer";
+      }
       
       console.log("Sending order data:", orderData);
       
@@ -90,6 +116,7 @@ const DrinkDetails = ({ drink, onBack }) => {
 
       if (!response.ok) {
         const errorData = await response.json();
+        console.error("Order API error:", errorData);
         throw new Error(errorData.message || 'Failed to place order');
       }
 
@@ -126,6 +153,10 @@ const DrinkDetails = ({ drink, onBack }) => {
     });
   };
 
+  const handleSugarLevelSelect = (level) => {
+    setSelectedSugarLevel(level);
+  };
+
   const calculateTotalPrice = () => {
     let total = selectedSize ? parseFloat(selectedSize.price) : parseFloat(drink.price);
     
@@ -152,7 +183,6 @@ const DrinkDetails = ({ drink, onBack }) => {
             {drink.title}
           </h1>
           
-          {/* Empty div for spacing */}
           <div className="w-10 h-10"></div>
         </div>
       </div>
@@ -186,10 +216,11 @@ const DrinkDetails = ({ drink, onBack }) => {
 
         {/* Product Details */}
         <div className="px-6 space-y-8 pb-32">
+
           {/* Size Selection */}
           {drink.sizes && drink.sizes.length > 0 && (
             <div className="space-y-4">
-              <h3 className="text-xl font-bold text-gray-800">Choose Size</h3>
+              <h3 className="text-xl font-bold text-gray-800 pt-4">Choose Size</h3>
               <div className="grid grid-cols-1 gap-3">
                 {drink.sizes.map((size, index) => (
                   <button
@@ -228,6 +259,44 @@ const DrinkDetails = ({ drink, onBack }) => {
               </div>
             </div>
           )}
+
+          {/* Sugar Level Selection */}
+          <div className="space-y-4">
+            <h3 className="text-xl font-bold text-gray-800">Sugar Level</h3>
+            <div className="grid grid-cols-1 gap-3">
+              {sugarLevels.map((level, index) => (
+                <button
+                  key={index}
+                  onClick={() => handleSugarLevelSelect(level.value)}
+                  className={`p-4 rounded-2xl border-2 text-left transition-all duration-200 ${
+                    selectedSugarLevel === level.value
+                      ? 'border-yellow-400 bg-yellow-50 shadow-md'
+                      : 'border-gray-200 bg-white hover:border-yellow-200 hover:bg-yellow-50'
+                  }`}
+                >
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <span className="font-semibold text-gray-800">
+                        {level.label} ({level.value})
+                      </span>
+                      <p className="text-sm text-gray-500 mt-1">
+                        {level.description}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      {selectedSugarLevel === level.value && (
+                        <div className="w-6 h-6 bg-yellow-400 rounded-full flex items-center justify-center">
+                          <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                          </svg>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
 
           {/* Toppings Selection */}
           {drink.toppings && drink.toppings.length > 0 && (
@@ -301,6 +370,9 @@ const DrinkDetails = ({ drink, onBack }) => {
             <span className="text-sm text-gray-500">Total Price</span>
             <div className="text-2xl font-bold text-gray-800">
               ${calculateTotalPrice()}
+            </div>
+            <div className="text-xs text-gray-400 mt-1">
+              Sugar: {sugarLevels.find(level => level.value === selectedSugarLevel)?.label}
             </div>
           </div>
           
