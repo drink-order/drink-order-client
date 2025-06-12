@@ -8,25 +8,52 @@ const ReceivedOrder = () => {
   const router = useRouter();
 
   const [orders, setOrders] = useState([]);
+  const [status, setStatus] = useState("preparing");
+  const [error, setError] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
   const [sortOption, setSortOption] = useState("Newest");
+
+  const statusOptions = [
+    { value: 'preparing', label: 'Preparing' },
+    { value: 'ready_for_pickup', label: 'Ready for Pickup' },
+    { value: 'completed', label: 'Completed' }
+  ];
 
   useEffect(() => {
     // Fetch orders from the API
     const fetchOrders = async () => {
       try {
-        const res = await fetch("http://localhost:3000/api/orders", {
+        const token = localStorage.getItem("auth_token");
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/orders?status=preparing`, {
+          headers: {
+            Authorization: token ? `Bearer ${token}` : "",
+            Accept: "application/json",
+            "Content-Type": "application/json",
+          },
+          credentials: "include",
           cache: "no-store",
         });
         if (!res.ok) {
+          if(res.status === 401 || res.status === 403) {
+            throw new Error("You are not authorized to view this page");
+          }
           throw new Error(`Failed to fetch orders: ${res.statusText}`);
         }
         const data = await res.json();
         console.log("Fetched orders:", data); // Debugging log
-        setOrders(data.orders || data); // Directly set the array to state
+        //setOrders(data.orders || data); // Directly set the array to state
+        const transformedOrders = (data.orders || data).map((order) => ({
+        id: order.id,
+        date: new Date(order.created_at).toLocaleDateString(), // convert timestamp to readable date
+        total: `$${parseFloat(order.total_price).toFixed(2)}`,
+        paymentStatus: "Unpaid",
+        raw: order, // Keep the raw order if needed later
+      }));
+
+      setOrders(transformedOrders);
       } catch (error) {
         console.error("Error fetching orders:", error);
-      }
+      } 
     };
 
     fetchOrders();
@@ -42,21 +69,45 @@ const ReceivedOrder = () => {
 
   useEffect(() => {
     const timeout = setTimeout(() => {
-      updatePaymentStatus("#001"); // Example: Automatically mark order #001 as "Paid"
+      updatePaymentStatus(1); // Example: Automatically mark order #001 as "Paid"
     }, 5000);
     return () => clearTimeout(timeout); // Cleanup timeout on component unmount
   }, []);
 
-  const handleOrderStatusChange = (id, newStatus) => {
-    setOrders((prevOrders) =>
-      prevOrders.map((order) =>
-        order.id === id ? { ...order, orderStatus: newStatus } : order
-      )
-    );
-  };
+  const updateStatus = async (newStatus, id) => {
+  if (newStatus === status) return;
+  
+  setError('');
+  
+  try {
+    const token = localStorage.getItem("auth_token");
+    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/orders/${id}/status`, {
+        method: "PATCH",
+        headers: {
+          "Authorization": `Bearer ${token}`,
+          "Accept": "application/json",
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+        body: JSON.stringify({ 
+          order_status: newStatus
+        }),
+      });
+
+    if (!res.ok) {
+      const errorData = await res.json();
+      throw new Error(errorData.message || 'Failed to update status');
+    }
+
+    setStatus(newStatus);
+    
+  } catch (err) {
+    setError(err.message);
+  }
+};
 
   const filteredOrders = orders.filter((order) =>
-    order.id.toLowerCase().includes(searchTerm.toLowerCase())
+    String(order.id).toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   return (
@@ -118,15 +169,18 @@ const ReceivedOrder = () => {
               <td className="p-2 border">{order.id}</td>
               <td className="p-2 border">{order.date}</td>
               <td className="p-2 border">
-                <select
-                  value={order.orderStatus}
-                  onChange={(e) => handleOrderStatusChange(order.id, e.target.value)}
-                  className="border rounded px-2 py-1"
-                >
-                  <option value="Preparing">Preparing</option>
-                  <option value="Ready for Pickup">Ready for Pickup</option>
-                  <option value="Picked Up">Picked Up</option>
-                </select>
+              <select 
+                value={status}
+                onChange={(e) => updateStatus(e.target.value, order.id)}
+                className="border rounded px-3 py-2 disabled:opacity-50"
+              >
+                {statusOptions.map(option => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+              {error && <p className="text-sm text-red-600">{error}</p>}
               </td>
               <td className="p-2 border">{order.total}</td>
               <td className="p-2 border">
