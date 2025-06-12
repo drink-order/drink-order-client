@@ -1,70 +1,20 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useCallback, useMemo } from "react";
 import { AiOutlineSearch } from 'react-icons/ai';
 import Card from "./card";
 
-const CategorySelector = ({ drinks, onCardClick, activeCategory, onCategoryChange }) => {
-  const [categories, setCategories] = useState([]);
-  const [error, setError] = useState(null);
+const CategorySelector = ({ drinks, categories, onCardClick, activeCategory, onCategoryChange }) => {
   const [activeSearch, setActiveSearch] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
 
-  useEffect(() => {
-    const fetchCategories = async () => {
-      try {
-        const token = localStorage.getItem("auth_token");
-
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/categories`, {
-          headers: {
-            Authorization: token ? `Bearer ${token}` : "",
-            Accept: "application/json",
-            "Content-Type": "application/json",
-          },
-          credentials: "include",
-          cache: "no-store",
-        });
-
-        if (!response.ok) {
-          if (response.status === 401 || response.status === 403) {
-            throw new Error("You don't have permission to view categories");
-          }
-          const errorText = await response.text();
-          throw new Error(`Failed to fetch categories: ${response.statusText} - ${errorText}`);
-        }
-
-        const data = await response.json();
-        
-        const categoriesArray = (data.categories || []).map(category => ({
-          id: category.id,
-          nameCategory: category.name,
-          userId: category.user_id,
-          createdAt: category.created_at,
-          updatedAt: category.updated_at
-        }));
-        
-        const filteredCategories = categoriesArray.filter(category => 
-          drinks.some(drink => drink.categoryId === category.id)
-        );
-        setCategories([{ id: -1, nameCategory: "All" }, ...filteredCategories]);
-      } catch (error) {
-        console.error("Error fetching categories:", error);
-        setError(error.message);
-      }
-    };
-
-    if (drinks.length > 0) {
-      fetchCategories();
-    }
-  }, [drinks]);
-
-  const handleCategoryClick = (categoryIndex) => {
+  const handleCategoryClick = useCallback((categoryIndex) => {
     onCategoryChange(categoryIndex);
     setActiveSearch([]);
     setSearchTerm("");
-  };
+  }, [onCategoryChange]);
 
-  const handleSearch = (e) => {
+  const handleSearch = useCallback((e) => {
     const value = e.target.value;
     setSearchTerm(value);
     
@@ -79,37 +29,34 @@ const CategorySelector = ({ drinks, onCardClick, activeCategory, onCategoryChang
       ? drinks.filter(drink => drink.title.toLowerCase().includes(searchValue))
       : drinks.filter(drink => drink.categoryId === activeCategoryId && drink.title.toLowerCase().includes(searchValue));
     setActiveSearch(filtered.slice(0, 12));
-  };
+  }, [drinks, categories, activeCategory]);
 
-  const clearSearch = () => {
+  const clearSearch = useCallback(() => {
     setSearchTerm("");
     setActiveSearch([]);
-  };
+  }, []);
 
-  if (error) {
+  // Memoize filtered drinks to prevent recalculation on every render
+  const filteredDrinks = useMemo(() => {
+    const activeCategoryId = categories[activeCategory]?.id;
+    let filtered = activeSearch.length > 0
+      ? activeSearch
+      : activeCategoryId === -1
+        ? drinks
+        : drinks.filter(drink => drink.categoryId === activeCategoryId);
+
+    return filtered.sort((a, b) => a.title.localeCompare(b.title));
+  }, [drinks, categories, activeCategory, activeSearch]);
+
+  // Show loading state if no data
+  if (!drinks.length || !categories.length) {
     return (
-      <div className="text-center text-red-500 p-4">
-        <p>{error}</p>
+      <div className="flex items-center justify-center py-8">
+        <div className="animate-spin rounded-full h-8 w-8 border-4 border-yellow-500 border-t-transparent mr-3"></div>
+        <p className="text-gray-600">Loading menu...</p>
       </div>
     );
   }
-
-  if (!Array.isArray(categories) || categories.length === 0) {
-    return (
-      <div className="text-center text-gray-500 p-4">
-        <p>No categories available</p>
-      </div>
-    );
-  }
-
-  const activeCategoryId = categories[activeCategory]?.id;
-  let filteredDrinks = activeSearch.length > 0
-    ? activeSearch
-    : activeCategoryId === -1
-      ? drinks
-      : drinks.filter(drink => drink.categoryId === activeCategoryId);
-
-  filteredDrinks = filteredDrinks.sort((a, b) => a.title.localeCompare(b.title));
 
   return (
     <div className="w-full">
@@ -149,7 +96,7 @@ const CategorySelector = ({ drinks, onCardClick, activeCategory, onCategoryChang
         <div className="flex overflow-x-auto space-x-2 pb-2">
           {categories.map((category, index) => (
             <button
-              key={index}
+              key={category.id}
               onClick={() => handleCategoryClick(index)}
               className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap border ${
                 activeCategory === index

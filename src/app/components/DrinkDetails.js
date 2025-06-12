@@ -3,7 +3,6 @@
 import React, { useState, useEffect } from "react";
 import CounterInput from "./CounterInput";
 import { useAuth } from "../context/AuthContext";
-import { useCart } from "../context/CartContext";
 import { useRouter } from "next/navigation";
 import { HiArrowLeft } from "react-icons/hi";
 
@@ -11,13 +10,12 @@ const DrinkDetails = ({ drink, onBack }) => {
   const [quantity, setQuantity] = useState(1);
   const [selectedSize, setSelectedSize] = useState(null);
   const [selectedToppings, setSelectedToppings] = useState([]);
-  const [selectedSugarLevel, setSelectedSugarLevel] = useState("100%"); // Add sugar level state
+  const [selectedSugarLevel, setSelectedSugarLevel] = useState("100%");
   const [canOrder, setCanOrder] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
   const [loading, setLoading] = useState(false);
   const { user } = useAuth();
-  const { addToCart } = useCart();
   const router = useRouter();
 
   // Sugar level options
@@ -52,7 +50,7 @@ const DrinkDetails = ({ drink, onBack }) => {
     initialize();
   }, [user]);
 
-  const handleAddToCart = async () => {
+  const handlePlaceOrder = async () => {
     if (!user) {
       router.push("/sign-in");
       return;
@@ -81,7 +79,7 @@ const DrinkDetails = ({ drink, onBack }) => {
         items: [{
           product_size_id: selectedSize.id,
           quantity: quantity,
-          sugar_level: selectedSugarLevel, // Add sugar level to order data
+          sugar_level: selectedSugarLevel,
           toppings: selectedToppings.map(topping => ({
             topping_id: topping.topping.id
           }))
@@ -382,9 +380,9 @@ const DrinkDetails = ({ drink, onBack }) => {
           </div>
         </div>
 
-        {/* Add to Cart Button */}
+        {/* Place Order Button */}
         <button
-          onClick={handleAddToCart}
+          onClick={handlePlaceOrder}
           disabled={loading || !selectedSize || !drink.isAvailable}
           className={`w-full py-4 rounded-2xl font-bold text-lg transition-all duration-200 ${
             loading || !selectedSize || !drink.isAvailable

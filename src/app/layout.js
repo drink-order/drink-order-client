@@ -1,8 +1,10 @@
 import { AuthProvider } from "./context/AuthContext";
 import { GuestProvider } from "./context/GuestContext";
 import NavBarWrapper from "./components/NavBarWrapper";
+import { ProductsProvider } from "./context/ProductsContext";
 import { CartProvider } from "./context/CartContext";
 import { OrderProvider } from "./context/OrderContext";
+import { NotificationProvider } from "./context/NotificationContext";
 import { Toaster } from "@/components/ui/toaster";
 import localFont from "next/font/local";
 import "./globals.css";
@@ -33,13 +35,17 @@ export default function RootLayout({
       >
         <AuthProvider>
           <GuestProvider>
-            <OrderProvider>
-              <CartProvider>
-                {children}
-                <NavBarWrapper />
-                <Toaster />
-              </CartProvider>
-            </OrderProvider>
+            <ProductsProvider>
+              <OrderProvider>
+                <CartProvider>
+                  <NotificationProvider>
+                    {children}
+                    <NavBarWrapper />
+                    <Toaster />
+                  </NotificationProvider>
+                </CartProvider>
+              </OrderProvider>
+            </ProductsProvider>
           </GuestProvider>
         </AuthProvider>
       </body>
