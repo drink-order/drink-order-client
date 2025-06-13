@@ -1,9 +1,10 @@
 {
-  "scripts": {
-    "dev": "next dev",
-    "build": "next build && echo 'Build completed'",
-    "start": "next start",
-    "lint": "next lint --fix",
-    "vercel-build": "next build"
+  "framework": "nextjs",
+  "buildCommand": "next build",
+  "installCommand": "npm install",
+  "functions": {
+    "app/**/*.{js,jsx,ts,tsx}": {
+      "maxDuration": 30
+    }
   }
 }

@@ -1,18 +1,12 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   experimental: {
-    turbo: false,
+    turbo: false, // Disable turbopack for Vercel deployment
   },
-  // Force routes manifest generation
+  output: 'standalone', // Better compatibility with Vercel
   generateBuildId: async () => {
+    // Force consistent build ID generation
     return 'build-' + Date.now()
-  },
-  // Ensure proper file structure for Vercel
-  distDir: '.next',
-  trailingSlash: false,
-  // Add this to force manifest creation
-  webpack: (config, { buildId, dev, isServer, defaultLoaders, webpack }) => {
-    return config
   }
 }
 
