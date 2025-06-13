@@ -1,0 +1,9 @@
+{
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build && echo 'Build completed'",
+    "start": "next start",
+    "lint": "next lint --fix",
+    "vercel-build": "next build"
+  }
+}
