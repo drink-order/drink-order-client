@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 import CounterInput from "./CounterInput";
 import { useAuth } from "../context/AuthContext";
 import { useRouter } from "next/navigation";
-import { HiArrowLeft } from "react-icons/hi";
+import { HiArrowLeft, HiLocationMarker } from "react-icons/hi";
 
 const DrinkDetails = ({ drink, onBack }) => {
   const [quantity, setQuantity] = useState(1);
@@ -15,6 +15,8 @@ const DrinkDetails = ({ drink, onBack }) => {
   const [errorMessage, setErrorMessage] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
   const [loading, setLoading] = useState(false);
+  const [locationLoading, setLocationLoading] = useState(false);
+  const [locationChecked, setLocationChecked] = useState(false);
   const { user } = useAuth();
   const router = useRouter();
 
@@ -34,21 +36,164 @@ const DrinkDetails = ({ drink, onBack }) => {
     }
   }, [drink]);
 
+  // Check user location when component mounts
   useEffect(() => {
-    const initialize = async () => {
+    const checkLocation = async () => {
       setErrorMessage("");
+      setLocationLoading(true);
 
       if (!user) {
         setErrorMessage("You need to be logged in to place an order.");
+        setLocationLoading(false);
         return;
       }
 
-      // For demo purposes, assume user can always order
-      setCanOrder(true);
+      try {
+        // Check if geolocation is supported
+        if (!navigator.geolocation) {
+          setErrorMessage("Geolocation is not supported by this browser.");
+          setCanOrder(false);
+          setLocationLoading(false);
+          return;
+        }
+
+        // Get user's current position
+        navigator.geolocation.getCurrentPosition(
+          async (position) => {
+            const { latitude, longitude } = position.coords;
+            
+            try {
+              // Send location to your API for verification
+              const response = await fetch('/shop-location/api/location', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ latitude, longitude })
+              });
+
+              const data = await response.json();
+              
+              if (data.status === 'success') {
+                setCanOrder(true);
+                setLocationChecked(true);
+              } else {
+                setCanOrder(false);
+                setErrorMessage(data.message || "You are too far from the shop to place an order.");
+              }
+            } catch (error) {
+              console.error('Location verification error:', error);
+              setErrorMessage("Failed to verify location. Please try again.");
+              setCanOrder(false);
+            } finally {
+              setLocationLoading(false);
+            }
+          },
+          (error) => {
+            console.error('Geolocation error:', error);
+            let message = "Unable to get your location. ";
+            
+            switch(error.code) {
+              case error.PERMISSION_DENIED:
+                message += "Please allow location access to place an order.";
+                break;
+              case error.POSITION_UNAVAILABLE:
+                message += "Location information is unavailable.";
+                break;
+              case error.TIMEOUT:
+                message += "Location request timed out.";
+                break;
+              default:
+                message += "An unknown error occurred.";
+                break;
+            }
+            
+            setErrorMessage(message);
+            setCanOrder(false);
+            setLocationLoading(false);
+          },
+          {
+            enableHighAccuracy: true,
+            timeout: 10000,
+            maximumAge: 300000 // 5 minutes
+          }
+        );
+      } catch (error) {
+        console.error('Location check error:', error);
+        setErrorMessage("Failed to check location. Please try again.");
+        setCanOrder(false);
+        setLocationLoading(false);
+      }
     };
 
-    initialize();
+    checkLocation();
   }, [user]);
+
+  // Manual location check function
+  const recheckLocation = () => {
+    setLocationChecked(false);
+    setCanOrder(false);
+    setErrorMessage("");
+    
+    // Re-run the location check
+    const checkLocation = async () => {
+      setLocationLoading(true);
+
+      try {
+        navigator.geolocation.getCurrentPosition(
+          async (position) => {
+            const { latitude, longitude } = position.coords;
+            
+            try {
+              const response = await fetch('/shop-location/api/location', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ latitude, longitude })
+              });
+
+              const data = await response.json();
+              
+              if (data.status === 'success') {
+                setCanOrder(true);
+                setLocationChecked(true);
+                setSuccessMessage("Location verified! You can now place orders.");
+                setTimeout(() => setSuccessMessage(""), 3000);
+              } else {
+                setCanOrder(false);
+                setErrorMessage(data.message || "You are too far from the shop to place an order.");
+              }
+            } catch (error) {
+              console.error('Location verification error:', error);
+              setErrorMessage("Failed to verify location. Please try again.");
+              setCanOrder(false);
+            } finally {
+              setLocationLoading(false);
+            }
+          },
+          (error) => {
+            console.error('Geolocation error:', error);
+            setErrorMessage("Unable to get your location. Please allow location access.");
+            setCanOrder(false);
+            setLocationLoading(false);
+          },
+          {
+            enableHighAccuracy: true,
+            timeout: 10000,
+            maximumAge: 0 // Force fresh location
+          }
+        );
+      } catch (error) {
+        console.error('Location recheck error:', error);
+        setErrorMessage("Failed to check location. Please try again.");
+        setCanOrder(false);
+        setLocationLoading(false);
+      }
+    };
+
+    checkLocation();
+  };
 
   const handlePlaceOrder = async () => {
     if (!user) {
@@ -57,7 +202,7 @@ const DrinkDetails = ({ drink, onBack }) => {
     }
 
     if (!canOrder) {
-      setErrorMessage("You are too far from the shop to place an order.");
+      setErrorMessage("Please verify your location first or move closer to the shop.");
       return;
     }
 
@@ -215,10 +360,47 @@ const DrinkDetails = ({ drink, onBack }) => {
         {/* Product Details */}
         <div className="px-6 space-y-8 pb-32">
 
+          {/* Location Status */}
+          <div className="pt-4">
+            {locationLoading ? (
+              <div className="bg-blue-50 border border-blue-200 rounded-2xl p-4">
+                <div className="flex items-center">
+                  <div className="w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mr-3"></div>
+                  <p className="text-blue-600 font-medium">Checking your location...</p>
+                </div>
+              </div>
+            ) : locationChecked && canOrder ? (
+              <div className="bg-green-50 border border-green-200 rounded-2xl p-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center">
+                    <HiLocationMarker className="w-5 h-5 text-green-600 mr-2" />
+                    <p className="text-green-600 font-medium">Location verified ✓</p>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="bg-red-50 border border-red-200 rounded-2xl p-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center">
+                    <HiLocationMarker className="w-5 h-5 text-red-600 mr-2" />
+                    <p className="text-red-600 font-medium">Location required</p>
+                  </div>
+                  <button
+                    onClick={recheckLocation}
+                    disabled={locationLoading}
+                    className="bg-red-100 hover:bg-red-200 text-red-600 px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200 disabled:opacity-50"
+                  >
+                    {locationLoading ? 'Checking...' : 'Check Location'}
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+
           {/* Size Selection */}
           {drink.sizes && drink.sizes.length > 0 && (
             <div className="space-y-4">
-              <h3 className="text-xl font-bold text-gray-800 pt-4">Choose Size</h3>
+              <h3 className="text-xl font-bold text-gray-800">Choose Size</h3>
               <div className="grid grid-cols-1 gap-3">
                 {drink.sizes.map((size, index) => (
                   <button
@@ -383,9 +565,9 @@ const DrinkDetails = ({ drink, onBack }) => {
         {/* Place Order Button */}
         <button
           onClick={handlePlaceOrder}
-          disabled={loading || !selectedSize || !drink.isAvailable}
+          disabled={loading || !selectedSize || !drink.isAvailable || !canOrder}
           className={`w-full py-4 rounded-2xl font-bold text-lg transition-all duration-200 ${
-            loading || !selectedSize || !drink.isAvailable
+            loading || !selectedSize || !drink.isAvailable || !canOrder
               ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
               : 'bg-gradient-to-r from-yellow-400 to-orange-400 text-white hover:from-yellow-500 hover:to-orange-500 shadow-lg hover:shadow-xl transform active:scale-95'
           }`}
@@ -399,6 +581,8 @@ const DrinkDetails = ({ drink, onBack }) => {
             'Please Select a Size'
           ) : !drink.isAvailable ? (
             'Currently Unavailable'
+          ) : !canOrder ? (
+            'Location Required'
           ) : (
             'Place Order'
           )}
