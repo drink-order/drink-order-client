@@ -9,11 +9,13 @@ const AddAccountForm = ({ onBack, onAdd }) => {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState(null);
+  const [validationErrors, setValidationErrors] = useState({});
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError(null);
+    setValidationErrors({});
 
     // Client-side validation
     if (!name.trim()) {
@@ -69,6 +71,23 @@ const AddAccountForm = ({ onBack, onAdd }) => {
 
       if (!res.ok) {
         const errorData = await res.json();
+        
+        // Handle Laravel validation errors (422 status)
+        if (res.status === 422 && errorData.errors) {
+          setValidationErrors(errorData.errors);
+          
+          // Set primary error message
+          if (errorData.errors.email && errorData.errors.email.length > 0) {
+            setError(errorData.errors.email[0]);
+          } else if (errorData.errors.name && errorData.errors.name.length > 0) {
+            setError(errorData.errors.name[0]);
+          } else {
+            setError("Validation failed. Please check your input.");
+          }
+          return;
+        }
+        
+        // Handle other errors
         throw new Error(errorData.message || "Failed to create account");
       }
 
@@ -110,10 +129,15 @@ const AddAccountForm = ({ onBack, onAdd }) => {
                   placeholder="Enter full name"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  className="w-full border border-gray-300 px-4 py-3 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-base"
+                  className={`w-full border px-4 py-3 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-base ${
+                    validationErrors.name ? 'border-red-500 focus:border-red-500' : 'border-gray-300 focus:border-blue-500'
+                  }`}
                   required
                   disabled={loading}
                 />
+                {validationErrors.name && (
+                  <p className="text-red-500 text-sm mt-1">{validationErrors.name[0]}</p>
+                )}
               </div>
 
               <div>
@@ -126,10 +150,15 @@ const AddAccountForm = ({ onBack, onAdd }) => {
                   placeholder="Enter email address"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full border border-gray-300 px-4 py-3 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-base"
+                  className={`w-full border px-4 py-3 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-base ${
+                    validationErrors.email ? 'border-red-500 focus:border-red-500' : 'border-gray-300 focus:border-blue-500'
+                  }`}
                   required
                   disabled={loading}
                 />
+                {validationErrors.email && (
+                  <p className="text-red-500 text-sm mt-1">{validationErrors.email[0]}</p>
+                )}
               </div>
 
               <div>
@@ -142,9 +171,14 @@ const AddAccountForm = ({ onBack, onAdd }) => {
                   placeholder="Enter phone number (optional)"
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
-                  className="w-full border border-gray-300 px-4 py-3 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-base"
+                  className={`w-full border px-4 py-3 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-base ${
+                    validationErrors.phone ? 'border-red-500 focus:border-red-500' : 'border-gray-300 focus:border-blue-500'
+                  }`}
                   disabled={loading}
                 />
+                {validationErrors.phone && (
+                  <p className="text-red-500 text-sm mt-1">{validationErrors.phone[0]}</p>
+                )}
               </div>
             </div>
 
@@ -177,10 +211,15 @@ const AddAccountForm = ({ onBack, onAdd }) => {
                   placeholder="Enter password (min. 6 characters)"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full border border-gray-300 px-4 py-3 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-base"
+                  className={`w-full border px-4 py-3 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-base ${
+                    validationErrors.password ? 'border-red-500 focus:border-red-500' : 'border-gray-300 focus:border-blue-500'
+                  }`}
                   required
                   disabled={loading}
                 />
+                {validationErrors.password && (
+                  <p className="text-red-500 text-sm mt-1">{validationErrors.password[0]}</p>
+                )}
               </div>
 
               <div>
@@ -217,6 +256,11 @@ const AddAccountForm = ({ onBack, onAdd }) => {
             {error && (
               <div className="p-4 bg-red-50 border border-red-200 rounded-md">
                 <p className="text-red-600 text-sm">{error}</p>
+                {error.includes("already been taken") && (
+                  <p className="text-red-500 text-xs mt-1">
+                    This email address is already registered. Please use a different email.
+                  </p>
+                )}
               </div>
             )}
 

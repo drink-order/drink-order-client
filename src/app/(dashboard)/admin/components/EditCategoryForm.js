@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 const EditCategoryForm = ({ category, onBack, onUpdate }) => {
   const [name, setName] = useState("");
   const [error, setError] = useState(null);
+  const [validationErrors, setValidationErrors] = useState({});
   const [loading, setLoading] = useState(false);
   const [originalName, setOriginalName] = useState("");
 
@@ -19,6 +20,7 @@ const EditCategoryForm = ({ category, onBack, onUpdate }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError(null);
+    setValidationErrors({});
 
     // Client-side validation
     if (!name.trim()) {
@@ -62,6 +64,21 @@ const EditCategoryForm = ({ category, onBack, onUpdate }) => {
 
       if (!res.ok) {
         const errorData = await res.json().catch(() => ({}));
+        
+        // Handle Laravel validation errors (422 status)
+        if (res.status === 422 && errorData.errors) {
+          setValidationErrors(errorData.errors);
+          
+          // Display the first error for name field if it exists
+          if (errorData.errors.name && errorData.errors.name.length > 0) {
+            setError(errorData.errors.name[0]);
+          } else {
+            setError("Validation failed. Please check your input.");
+          }
+          return;
+        }
+        
+        // Handle other errors
         throw new Error(errorData.message || `Failed to update category (${res.status})`);
       }
 
@@ -121,11 +138,16 @@ const EditCategoryForm = ({ category, onBack, onUpdate }) => {
                 placeholder="Enter category name"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                className="w-full border border-gray-300 px-3 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className={`w-full border px-3 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                  validationErrors.name ? 'border-red-500 focus:border-red-500' : 'border-gray-300 focus:border-blue-500'
+                }`}
                 required
                 disabled={loading}
                 maxLength={100}
               />
+              {validationErrors.name && (
+                <p className="text-red-500 text-sm mt-1">{validationErrors.name[0]}</p>
+              )}
               <div className="flex justify-between items-center mt-1">
                 <p className="text-xs text-gray-500">
                   {name.length}/100 characters
@@ -152,6 +174,11 @@ const EditCategoryForm = ({ category, onBack, onUpdate }) => {
             {error && (
               <div className="p-3 bg-red-50 border border-red-200 rounded-md">
                 <p className="text-red-600 text-sm">{error}</p>
+                {error.includes("already been taken") && (
+                  <p className="text-red-500 text-xs mt-1">
+                    This category name is already in use. Please choose a different name.
+                  </p>
+                )}
               </div>
             )}
 

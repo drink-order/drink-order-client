@@ -6,9 +6,8 @@ import { useAuth } from "../context/AuthContext";
 
 const Notification = () => {
   const { user } = useAuth();
-  const [filter, setFilter] = useState('all'); // 'all', 'unread', 'read'
+  const [filter, setFilter] = useState('all');
   
-  // Use the hook directly
   const { 
     notifications, 
     unreadCount, 
@@ -24,11 +23,10 @@ const Notification = () => {
     }
   });
 
-  // Filter notifications based on selected filter
   const filteredNotifications = notifications.filter(notification => {
     if (filter === 'unread') return !notification.read;
     if (filter === 'read') return notification.read;
-    return true; // 'all'
+    return true;
   });
 
   const formatTimeAgo = (timestamp) => {
@@ -44,15 +42,26 @@ const Notification = () => {
 
   const getNotificationIcon = (type) => {
     switch (type) {
-      case 'order':
-        return '🛍️';
-      case 'system':
-        return '⚙️';
-      case 'promotion':
-        return '🎉';
-      default:
-        return '📢';
+      case 'order': return '🛍️';
+      case 'system': return '⚙️';
+      case 'promotion': return '🎉';
+      default: return '📢';
     }
+  };
+
+  // FIXED: Extract order ID from notification
+  const getOrderDisplayText = (notification) => {
+    if (notification.order_id) {
+      return `Order #${notification.order_id}`;
+    }
+    
+    // Fallback: extract order ID from message
+    const orderIdMatch = notification.message.match(/#(\d+)/);
+    if (orderIdMatch) {
+      return `Order #${orderIdMatch[1]}`;
+    }
+    
+    return null;
   };
 
   const handleNotificationClick = async (notification) => {
@@ -119,7 +128,6 @@ const Notification = () => {
   return (
     <div className="min-h-screen bg-gray-50 p-4 mb-20">
       <div className="max-w-2xl mx-auto">
-        {/* Header */}
         <div className="bg-white rounded-lg shadow-sm p-6 mb-4">
           <div className="flex items-center justify-between mb-4">
             <h1 className="text-2xl font-bold text-gray-900">
@@ -135,12 +143,10 @@ const Notification = () => {
             )}
           </div>
           
-          {/* Stats */}
           <div className="text-sm text-gray-600 mb-4">
             {notifications.length} total notifications, {unreadCount} unread
           </div>
 
-          {/* Filter Tabs */}
           <div className="flex space-x-1 bg-gray-100 rounded-lg p-1">
             {[
               { key: 'all', label: 'All', count: notifications.length },
@@ -162,7 +168,6 @@ const Notification = () => {
           </div>
         </div>
 
-        {/* Notifications List */}
         <div className="bg-white rounded-lg shadow-sm">
           {filteredNotifications.length === 0 ? (
             <div className="p-8 text-center">
@@ -179,57 +184,58 @@ const Notification = () => {
             </div>
           ) : (
             <div className="divide-y divide-gray-100">
-              {filteredNotifications.map((notification) => (
-                <div
-                  key={notification.id}
-                  onClick={() => handleNotificationClick(notification)}
-                  className={`p-6 hover:bg-gray-50 cursor-pointer transition-colors ${
-                    !notification.read ? 'bg-blue-50 border-l-4 border-l-blue-500' : ''
-                  }`}
-                >
-                  <div className="flex items-start space-x-4">
-                    {/* Icon */}
-                    <div className="text-2xl flex-shrink-0">
-                      {getNotificationIcon(notification.type)}
-                    </div>
-                    
-                    {/* Content */}
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <h3 className="text-base font-semibold text-gray-900 mb-1">
-                            {notification.title}
-                          </h3>
-                          <p className="text-gray-700 mb-2">
-                            {notification.message}
-                          </p>
-                          <div className="flex items-center space-x-4 text-sm text-gray-500">
-                            <span>{formatTimeAgo(notification.created_at)}</span>
-                            <span className="capitalize bg-gray-100 px-2 py-1 rounded-full text-xs">
-                              {notification.type}
-                            </span>
-                            {notification.order_id && (
-                              <span className="text-blue-600">
-                                Order #{notification.order_id}
+              {filteredNotifications.map((notification) => {
+                const orderDisplayText = getOrderDisplayText(notification);
+                
+                return (
+                  <div
+                    key={notification.id}
+                    onClick={() => handleNotificationClick(notification)}
+                    className={`p-6 hover:bg-gray-50 cursor-pointer transition-colors ${
+                      !notification.read ? 'bg-blue-50 border-l-4 border-l-blue-500' : ''
+                    }`}
+                  >
+                    <div className="flex items-start space-x-4">
+                      <div className="text-2xl flex-shrink-0">
+                        {getNotificationIcon(notification.type)}
+                      </div>
+                      
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <h3 className="text-base font-semibold text-gray-900 mb-1">
+                              {notification.title}
+                            </h3>
+                            <p className="text-gray-700 mb-2">
+                              {notification.message}
+                            </p>
+                            <div className="flex items-center space-x-4 text-sm text-gray-500">
+                              <span>{formatTimeAgo(notification.created_at)}</span>
+                              <span className="capitalize bg-gray-100 px-2 py-1 rounded-full text-xs">
+                                {notification.type}
                               </span>
-                            )}
+                              {/* FIXED: Show Order #ID instead of order number */}
+                              {orderDisplayText && (
+                                <span className="text-blue-600 bg-blue-100 px-2 py-1 rounded-full text-xs">
+                                  {orderDisplayText}
+                                </span>
+                              )}
+                            </div>
                           </div>
+                          
+                          {!notification.read && (
+                            <div className="w-3 h-3 bg-blue-500 rounded-full flex-shrink-0 ml-4"></div>
+                          )}
                         </div>
-                        
-                        {/* Unread indicator */}
-                        {!notification.read && (
-                          <div className="w-3 h-3 bg-blue-500 rounded-full flex-shrink-0 ml-4"></div>
-                        )}
                       </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>
 
-        {/* Loading indicator for additional loads */}
         {loading && notifications.length > 0 && (
           <div className="text-center py-4">
             <div className="inline-flex items-center px-4 py-2 text-sm text-gray-600">

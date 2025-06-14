@@ -1,7 +1,8 @@
 "use client";
 import React, { useState, useEffect } from "react";
-import { PiEyesDuotone } from "react-icons/pi";
-import { HiSearch } from "react-icons/hi";
+import { PiEyesDuotone, PiCookingPot } from "react-icons/pi";
+import { HiSearch, HiRefresh, HiPlus } from "react-icons/hi";
+import { MdVisibility, MdFastfood } from "react-icons/md";
 import { useRouter } from "next/navigation";
 import Swal from "sweetalert2";
 
@@ -18,6 +19,15 @@ const ReceivedOrder = () => {
     { value: 'ready_for_pickup', label: 'Ready for Pickup', color: 'bg-blue-100 text-blue-800' },
     { value: 'completed', label: 'Completed', color: 'bg-green-100 text-green-800' }
   ];
+
+  // Sugar level display mapping
+  const sugarLevelLabels = {
+    '0%': 'No Sugar',
+    '25%': 'Light Sweet',
+    '50%': 'Half Sweet', 
+    '75%': 'Less Sweet',
+    '100%': 'Regular'
+  };
 
   // Helper function to format date with time
   const formatDateTime = (dateString) => {
@@ -86,13 +96,16 @@ const ReceivedOrder = () => {
       const data = await res.json();
       console.log("Fetched orders:", data);
       
-      // Transform and sort orders
+      // Transform and sort orders - handle proper backend structure
       const transformedOrders = (data.orders || data)
         .filter(order => order.order_status === "preparing")
         .map(order => ({
           ...order,
           formattedDate: formatDateTime(order.created_at),
           formattedTotal: `$${parseFloat(order.total_price || 0).toFixed(2)}`,
+          // Use correct relationship name from backend
+          items: order.order_items || order.orderItems || [],
+          customer_name: order.customer_name || order.user?.name || order.user?.username || 'Guest'
         }));
 
       const sortedOrders = sortOrders(transformedOrders, sortOption);
@@ -199,13 +212,15 @@ const ReceivedOrder = () => {
       const data = await res.json();
       const order = data.order || data;
 
-      // Format order items for display
-      const itemsHtml = order.items?.map(item => `
+      // Format order items for display - handle backend structure properly
+      const items = order.order_items || order.orderItems || [];
+      const itemsHtml = items.map(item => `
         <div style="text-align: left; margin: 8px 0; padding: 8px; background: #f8f9fa; border-radius: 4px;">
           <strong>${item.product_size?.product?.name || 'Unknown Product'}</strong><br>
-          <small>Size: ${item.product_size?.size || 'Standard'} | Quantity: ${item.quantity}</small><br>
+          <small>Size: ${item.product_size?.size === 'none' ? 'Standard' : (item.product_size?.size || 'Standard')} | Quantity: ${item.quantity}</small><br>
+          <small>Sugar Level: ${sugarLevelLabels[item.sugar_level] || item.sugar_level || 'Regular'}</small><br>
           ${item.toppings?.length > 0 ? `<small>Toppings: ${item.toppings.map(t => t.topping?.name).join(', ')}</small><br>` : ''}
-          <small>Price: $${parseFloat(item.price || 0).toFixed(2)}</small>
+          <small>Unit Price: $${parseFloat(item.unit_price || 0).toFixed(2)}</small>
         </div>
       `).join('') || '<p>No items found</p>';
 
@@ -213,9 +228,10 @@ const ReceivedOrder = () => {
         title: `Order #${order.id} Details`,
         html: `
           <div style="text-align: left;">
-            <p><strong>Customer:</strong> ${order.user?.name || order.user?.username || 'Guest'}</p>
+            <p><strong>Customer:</strong> ${order.customer_name || order.user?.name || order.user?.username || 'Guest'}</p>
+            <p><strong>Order Number:</strong> ${order.order_number || 'N/A'}</p>
             <p><strong>Date:</strong> ${formatDateTime(order.created_at)}</p>
-            <p><strong>Status:</strong> ${order.order_status}</p>
+            <p><strong>Status:</strong> <span style="background: #FEF3C7; color: #92400E; padding: 2px 8px; border-radius: 12px; font-size: 12px;">Preparing</span></p>
             <p><strong>Total:</strong> $${parseFloat(order.total_price || 0).toFixed(2)}</p>
             <hr style="margin: 16px 0;">
             <h4>Order Items:</h4>
@@ -241,6 +257,8 @@ const ReceivedOrder = () => {
   // Filter orders
   const filteredOrders = orders.filter((order) =>
     String(order.id).includes(searchTerm) ||
+    order.order_number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    order.customer_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     order.user?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     order.user?.username?.toLowerCase().includes(searchTerm.toLowerCase())
   );
@@ -249,7 +267,10 @@ const ReceivedOrder = () => {
     <div className="p-4">
       {/* Header Section */}
       <div className="mb-6">
-        <h1 className="text-3xl font-bold mb-2 text-black">Order Management</h1>
+        <h1 className="text-3xl font-bold mb-2 text-black flex items-center gap-2">
+          <PiCookingPot className="text-yellow-600" />
+          Order Management
+        </h1>
         <div className="flex justify-between items-center">
           <h2 className="text-xl font-semibold text-black">Preparing Orders ({filteredOrders.length})</h2>
           <div className="flex items-center space-x-4">
@@ -280,18 +301,20 @@ const ReceivedOrder = () => {
             {/* Add New Order Button */}
             <button
               onClick={() => router.push("/staff/addnewdrinks")}
-              className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors duration-200"
+              className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors duration-200 flex items-center gap-2"
               disabled={loading}
             >
+              <HiPlus className="w-4 h-4" />
               Add New Order
             </button>
             {/* Refresh Button */}
             <button
               onClick={fetchOrders}
-              className="px-4 py-2 bg-green-500 text-white rounded-md hover:bg-green-600 transition-colors duration-200"
+              className="px-4 py-2 bg-green-500 text-white rounded-md hover:bg-green-600 transition-colors duration-200 flex items-center gap-2"
               disabled={loading}
               title="Refresh orders"
             >
+              <HiRefresh className="w-4 h-4" />
               Refresh
             </button>
           </div>
@@ -325,8 +348,10 @@ const ReceivedOrder = () => {
             <thead className="bg-gray-100">
               <tr>
                 <th className="p-3 border border-gray-300 font-semibold">Order ID</th>
+                <th className="p-3 border border-gray-300 font-semibold">Order Number</th>
                 <th className="p-3 border border-gray-300 font-semibold">Customer</th>
                 <th className="p-3 border border-gray-300 font-semibold">Date & Time</th>
+                <th className="p-3 border border-gray-300 font-semibold">Items</th>
                 <th className="p-3 border border-gray-300 font-semibold">Status</th>
                 <th className="p-3 border border-gray-300 font-semibold">Total</th>
                 <th className="p-3 border border-gray-300 font-semibold">Actions</th>
@@ -336,12 +361,29 @@ const ReceivedOrder = () => {
               {filteredOrders.map((order) => (
                 <tr key={order.id} className="hover:bg-gray-50">
                   <td className="p-3 border border-gray-300 font-medium">#{order.id}</td>
+                  <td className="p-3 border border-gray-300 font-medium">
+                    {order.order_number || 'N/A'}
+                  </td>
                   <td className="p-3 border border-gray-300">
-                    {order.user?.name || order.user?.username || 'Guest'}
+                    {order.customer_name}
                   </td>
                   <td className="p-3 border border-gray-300 text-sm">
                     <div className="whitespace-nowrap">
                       {order.formattedDate}
+                    </div>
+                  </td>
+                  <td className="p-3 border border-gray-300 text-sm">
+                    <div className="max-w-48 overflow-hidden">
+                      {order.items?.slice(0, 2).map((item, idx) => (
+                        <div key={idx} className="text-xs text-gray-600 truncate">
+                          {item.product_size?.product?.name || 'Unknown'} x{item.quantity}
+                        </div>
+                      ))}
+                      {order.items?.length > 2 && (
+                        <div className="text-xs text-blue-600">
+                          +{order.items.length - 2} more...
+                        </div>
+                      )}
                     </div>
                   </td>
                   <td className="p-3 border border-gray-300">
@@ -368,7 +410,7 @@ const ReceivedOrder = () => {
                         className="bg-blue-500 text-white hover:bg-blue-600 px-3 py-1 rounded text-sm transition-colors duration-200 flex items-center gap-1"
                         disabled={loading}
                       >
-                        <PiEyesDuotone className="w-4 h-4" />
+                        <MdVisibility className="w-4 h-4" />
                         View Details
                       </button>
                     </div>

@@ -1,7 +1,9 @@
 "use client";
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { HiPlus, HiTrash } from "react-icons/hi";
+import { HiPlus, HiTrash, HiShoppingCart, HiCoffee } from "react-icons/hi";
+import { MdLocalDrink, MdAdd } from "react-icons/md";
+import { FiCoffee } from "react-icons/fi";
 import Swal from "sweetalert2";
 
 const AddNewDrinks = () => {
@@ -11,6 +13,7 @@ const AddNewDrinks = () => {
     size: "",
     topping: "",
     quantity: 1,
+    sugar_level: "100%", // Add sugar level
     price: 0.0,
   });
   const [drinks, setDrinks] = useState([]);
@@ -18,6 +21,16 @@ const AddNewDrinks = () => {
   const [loading, setLoading] = useState(false);
   const [submitLoading, setSubmitLoading] = useState(false);
   const [error, setError] = useState("");
+  const [validationErrors, setValidationErrors] = useState({});
+
+  // Sugar level options
+  const sugarLevels = [
+    { value: "0%", label: "No Sugar (0%)" },
+    { value: "25%", label: "Light Sweet (25%)" },
+    { value: "50%", label: "Half Sweet (50%)" },
+    { value: "75%", label: "Less Sweet (75%)" },
+    { value: "100%", label: "Regular (100%)" },
+  ];
 
   // Fetch products with sizes and toppings
   useEffect(() => {
@@ -39,6 +52,7 @@ const AddNewDrinks = () => {
         }
 
         const data = await res.json();
+        console.log("Fetched products:", data);
         setProducts(Array.isArray(data) ? data : data.products || []);
       } catch (err) {
         console.error("Error fetching products:", err);
@@ -74,6 +88,15 @@ const AddNewDrinks = () => {
   const handleChange = (e) => {
     const { name, value } = e.target;
     
+    // Clear validation errors when user types
+    if (validationErrors[name]) {
+      setValidationErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors[name];
+        return newErrors;
+      });
+    }
+    
     // Reset dependent fields when main selection changes
     if (name === "name") {
       setDrink((prev) => ({
@@ -99,6 +122,7 @@ const AddNewDrinks = () => {
 
   const addDrink = () => {
     setError("");
+    setValidationErrors({});
     
     if (!drink.name || !drink.size || drink.quantity <= 0) {
       setError("Please select drink, size, and quantity.");
@@ -112,7 +136,14 @@ const AddNewDrinks = () => {
     };
     
     setDrinks((prev) => [...prev, newDrink]);
-    setDrink({ name: "", size: "", topping: "", quantity: 1, price: 0.0 });
+    setDrink({ 
+      name: "", 
+      size: "", 
+      topping: "", 
+      quantity: 1, 
+      sugar_level: "100%", 
+      price: 0.0 
+    });
     
     Swal.fire({
       title: 'Added!',
@@ -133,23 +164,24 @@ const AddNewDrinks = () => {
       return;
     }
 
-    // Build items array for API
+    // Build items array for API - match backend structure
     const items = drinks.map((d) => {
       const product = products.find((p) => p.name === d.name);
       const sizeObj = product.sizes.find((s) => s.size === d.size);
-      let toppingArr = [];
+      let toppings = [];
       
       if (d.topping) {
         const toppingObj = product.toppings.find((t) => t.topping.name === d.topping);
         if (toppingObj) {
-          toppingArr.push({ topping_id: toppingObj.topping.id });
+          toppings.push({ topping_id: toppingObj.topping.id });
         }
       }
       
       return {
         product_size_id: sizeObj.id,
         quantity: d.quantity,
-        toppings: toppingArr,
+        sugar_level: d.sugar_level, // Include sugar level
+        toppings: toppings,
       };
     });
 
@@ -158,6 +190,7 @@ const AddNewDrinks = () => {
     try {
       setSubmitLoading(true);
       setError("");
+      setValidationErrors({});
       
       const token = localStorage.getItem("auth_token");
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/orders`, {
@@ -173,6 +206,15 @@ const AddNewDrinks = () => {
       
       if (!res.ok) {
         const errorData = await res.json();
+        
+        // Handle Laravel validation errors
+        if (res.status === 422 && errorData.errors) {
+          setValidationErrors(errorData.errors);
+          const errorMessages = Object.values(errorData.errors).flat();
+          setError(`Validation failed: ${errorMessages.join(', ')}`);
+          return;
+        }
+        
         throw new Error(errorData.message || "Failed to submit order.");
       }
 
@@ -220,7 +262,10 @@ const AddNewDrinks = () => {
       {/* Header */}
       <div className="mb-6">
         <div className="flex items-center justify-between">
-          <h1 className="text-3xl font-bold text-black">Add New Order</h1>
+          <h1 className="text-3xl font-bold text-black flex items-center gap-2">
+            <MdLocalDrink className="text-blue-600" />
+            Add New Order
+          </h1>
           <button
             onClick={() => router.push("/staff")}
             className="px-4 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600 transition-colors duration-200"
@@ -240,7 +285,10 @@ const AddNewDrinks = () => {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Left Column - Add Drink Form */}
         <div className="bg-white rounded-lg shadow-md p-6">
-          <h2 className="text-xl font-semibold mb-4 text-black">Add Drink to Order</h2>
+          <h2 className="text-xl font-semibold mb-4 text-black flex items-center gap-2">
+            <FiCoffee className="text-amber-600" />
+            Add Drink to Order
+          </h2>
           
           <div className="space-y-4">
             {/* Drink Selection */}
@@ -250,7 +298,9 @@ const AddNewDrinks = () => {
                 name="name"
                 value={drink.name}
                 onChange={handleChange}
-                className="w-full border border-gray-300 p-3 rounded-md text-black focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className={`w-full border p-3 rounded-md text-black focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+                  validationErrors.name ? 'border-red-500' : 'border-gray-300'
+                }`}
                 required
               >
                 <option value="">Choose a drink...</option>
@@ -260,6 +310,9 @@ const AddNewDrinks = () => {
                   </option>
                 ))}
               </select>
+              {validationErrors.name && (
+                <p className="text-red-500 text-sm mt-1">{validationErrors.name[0]}</p>
+              )}
             </div>
 
             {/* Size Selection */}
@@ -269,7 +322,9 @@ const AddNewDrinks = () => {
                 name="size"
                 value={drink.size}
                 onChange={handleChange}
-                className="w-full border border-gray-300 p-3 rounded-md text-black focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className={`w-full border p-3 rounded-md text-black focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+                  validationErrors.size ? 'border-red-500' : 'border-gray-300'
+                }`}
                 disabled={!drink.name}
                 required
               >
@@ -277,6 +332,27 @@ const AddNewDrinks = () => {
                 {selectedProduct?.sizes.map((s) => (
                   <option key={s.id} value={s.size}>
                     {s.size === 'none' ? 'Standard' : s.size.charAt(0).toUpperCase() + s.size.slice(1)} - ${parseFloat(s.price).toFixed(2)}
+                  </option>
+                ))}
+              </select>
+              {validationErrors.size && (
+                <p className="text-red-500 text-sm mt-1">{validationErrors.size[0]}</p>
+              )}
+            </div>
+
+            {/* Sugar Level Selection */}
+            <div>
+              <label className="block mb-1 text-black font-medium">Sugar Level *</label>
+              <select
+                name="sugar_level"
+                value={drink.sugar_level}
+                onChange={handleChange}
+                className="w-full border border-gray-300 p-3 rounded-md text-black focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                required
+              >
+                {sugarLevels.map((level) => (
+                  <option key={level.value} value={level.value}>
+                    {level.label}
                   </option>
                 ))}
               </select>
@@ -310,11 +386,16 @@ const AddNewDrinks = () => {
                   name="quantity"
                   value={drink.quantity}
                   onChange={handleChange}
-                  className="w-full border border-gray-300 p-3 rounded-md text-black focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className={`w-full border p-3 rounded-md text-black focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+                    validationErrors.quantity ? 'border-red-500' : 'border-gray-300'
+                  }`}
                   min="1"
                   max="50"
                   required
                 />
+                {validationErrors.quantity && (
+                  <p className="text-red-500 text-sm mt-1">{validationErrors.quantity[0]}</p>
+                )}
               </div>
 
               {/* Unit Price */}
@@ -350,7 +431,7 @@ const AddNewDrinks = () => {
               className="w-full bg-blue-500 hover:bg-blue-600 text-white px-4 py-3 rounded-md transition-colors duration-200 flex items-center justify-center gap-2"
               disabled={!drink.name || !drink.size || drink.quantity <= 0}
             >
-              <HiPlus className="w-5 h-5" />
+              <MdAdd className="w-5 h-5" />
               Add to Order
             </button>
           </div>
@@ -358,7 +439,10 @@ const AddNewDrinks = () => {
 
         {/* Right Column - Order Summary */}
         <div className="bg-white rounded-lg shadow-md p-6">
-          <h2 className="text-xl font-semibold mb-4 text-black">Order Summary</h2>
+          <h2 className="text-xl font-semibold mb-4 text-black flex items-center gap-2">
+            <HiShoppingCart className="text-green-600" />
+            Order Summary
+          </h2>
           
           {drinks.length === 0 ? (
             <div className="text-center py-8">
@@ -375,6 +459,9 @@ const AddNewDrinks = () => {
                       <p className="text-sm text-gray-600">
                         Size: {d.size === 'none' ? 'Standard' : d.size.charAt(0).toUpperCase() + d.size.slice(1)}
                         {d.topping && ` • Topping: ${d.topping}`}
+                      </p>
+                      <p className="text-sm text-gray-600">
+                        Sugar: {sugarLevels.find(s => s.value === d.sugar_level)?.label || d.sugar_level}
                       </p>
                       <p className="text-sm text-gray-600">
                         Quantity: {d.quantity} × ${d.price.toFixed(2)}

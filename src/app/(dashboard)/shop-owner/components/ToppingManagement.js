@@ -11,6 +11,7 @@ const ToppingManagement = () => {
   const [editTopping, setEditTopping] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [validationErrors, setValidationErrors] = useState({});
   const [formLoading, setFormLoading] = useState(false);
 
   // Form state
@@ -106,6 +107,16 @@ const ToppingManagement = () => {
   // Form handlers
   const handleFormChange = (e) => {
     const { name, value, type, checked } = e.target;
+    
+    // Clear validation error for this field when user starts typing
+    if (validationErrors[name]) {
+      setValidationErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors[name];
+        return newErrors;
+      });
+    }
+    
     setFormData(prev => ({
       ...prev,
       [name]: type === "checkbox" ? checked : value,
@@ -117,8 +128,10 @@ const ToppingManagement = () => {
       name: "",
       is_available: true
     });
+    setValidationErrors({});
     setEditTopping(null);
     setShowForm(false);
+    setError(null);
   };
 
   const handleAdd = () => {
@@ -131,6 +144,8 @@ const ToppingManagement = () => {
       name: topping.name,
       is_available: topping.is_available
     });
+    setValidationErrors({});
+    setError(null);
     setEditTopping(topping);
     setShowForm(true);
   };
@@ -146,6 +161,7 @@ const ToppingManagement = () => {
     try {
       setFormLoading(true);
       setError(null);
+      setValidationErrors({});
       
       const token = localStorage.getItem("auth_token");
       if (!token) {
@@ -174,10 +190,22 @@ const ToppingManagement = () => {
 
       if (!res.ok) {
         const errorData = await res.json();
+        
+        // Handle Laravel validation errors (422 status)
         if (res.status === 422 && errorData.errors) {
-          const errorMessages = Object.values(errorData.errors).flat();
-          throw new Error(`Validation failed: ${errorMessages.join(', ')}`);
+          setValidationErrors(errorData.errors);
+          
+          // Set primary error message
+          if (errorData.errors.name && errorData.errors.name.length > 0) {
+            setError(errorData.errors.name[0]);
+          } else {
+            const errorMessages = Object.values(errorData.errors).flat();
+            setError(`Validation failed: ${errorMessages.join(', ')}`);
+          }
+          return;
         }
+        
+        // Handle other errors
         if (res.status === 401 || res.status === 403) {
           throw new Error(`You don't have permission to ${editTopping ? 'update' : 'create'} this topping`);
         }
@@ -346,6 +374,11 @@ const ToppingManagement = () => {
           {error && (
             <div className="mb-4 bg-red-50 border border-red-200 rounded-md p-4">
               <p className="text-red-700">{error}</p>
+              {error.includes("already been taken") && (
+                <p className="text-red-500 text-xs mt-1">
+                  This topping name is already in use. Please choose a different name.
+                </p>
+              )}
             </div>
           )}
 
@@ -358,11 +391,16 @@ const ToppingManagement = () => {
                   name="name"
                   value={formData.name}
                   onChange={handleFormChange}
-                  className="w-full border border-gray-300 p-2 rounded-md text-black focus:ring-2 focus:ring-blue-500"
+                  className={`w-full border p-2 rounded-md text-black focus:ring-2 focus:ring-blue-500 ${
+                    validationErrors.name ? 'border-red-500 focus:border-red-500' : 'border-gray-300'
+                  }`}
                   required
                   maxLength={255}
                   placeholder="Enter topping name"
                 />
+                {validationErrors.name && (
+                  <p className="text-red-500 text-sm mt-1">{validationErrors.name[0]}</p>
+                )}
               </div>
 
               <div className="flex items-center">

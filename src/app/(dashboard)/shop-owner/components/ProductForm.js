@@ -16,6 +16,7 @@ const ProductForm = ({ product = null, onBack, onSubmit, isEdit = false }) => {
   const [selectedToppings, setSelectedToppings] = useState([]);
   const [hasSizes, setHasSizes] = useState(false);
   const [error, setError] = useState(null);
+  const [validationErrors, setValidationErrors] = useState({});
   const [loading, setLoading] = useState(false);
   const [dataLoading, setDataLoading] = useState(true);
   
@@ -117,6 +118,15 @@ const ProductForm = ({ product = null, onBack, onSubmit, isEdit = false }) => {
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
+    // Clear validation error for this field when user starts typing
+    if (validationErrors[name]) {
+      setValidationErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors[name];
+        return newErrors;
+      });
+    }
+    
     setFormData(prev => ({
       ...prev,
       [name]: type === "checkbox" ? checked : 
@@ -232,6 +242,7 @@ const ProductForm = ({ product = null, onBack, onSubmit, isEdit = false }) => {
     try {
       setLoading(true);
       setError(null);
+      setValidationErrors({});
       
       const token = localStorage.getItem("auth_token");
       if (!token) {
@@ -294,10 +305,22 @@ const ProductForm = ({ product = null, onBack, onSubmit, isEdit = false }) => {
 
       if (!res.ok) {
         const errorData = await res.json();
+        
+        // Handle Laravel validation errors (422 status)
         if (res.status === 422 && errorData.errors) {
-          const errorMessages = Object.values(errorData.errors).flat();
-          throw new Error(`Validation failed: ${errorMessages.join(', ')}`);
+          setValidationErrors(errorData.errors);
+          
+          // Set primary error message
+          if (errorData.errors.name && errorData.errors.name.length > 0) {
+            setError(errorData.errors.name[0]);
+          } else {
+            const errorMessages = Object.values(errorData.errors).flat();
+            setError(`Validation failed: ${errorMessages.join(', ')}`);
+          }
+          return;
         }
+        
+        // Handle other errors
         if (res.status === 401 || res.status === 403) {
           throw new Error(`You don't have permission to ${isEdit ? 'update' : 'create'} this product`);
         }
@@ -329,6 +352,7 @@ const ProductForm = ({ product = null, onBack, onSubmit, isEdit = false }) => {
     setSelectedToppings([]);
     setHasSizes(false);
     setError(null);
+    setValidationErrors({});
     setImagePreview(null);
     setCurrentImageUrl(null);
     
@@ -366,6 +390,11 @@ const ProductForm = ({ product = null, onBack, onSubmit, isEdit = false }) => {
       {error && (
         <div className="mb-4 bg-red-50 border border-red-200 rounded-md p-4">
           <p className="text-red-700">{error}</p>
+          {error.includes("already been taken") && (
+            <p className="text-red-500 text-xs mt-1">
+              This product name is already in use. Please choose a different name.
+            </p>
+          )}
         </div>
       )}
 
@@ -379,10 +408,15 @@ const ProductForm = ({ product = null, onBack, onSubmit, isEdit = false }) => {
               name="name"
               value={formData.name}
               onChange={handleChange}
-              className="w-full border border-gray-300 p-2 rounded-md text-black focus:ring-2 focus:ring-blue-500"
+              className={`w-full border p-2 rounded-md text-black focus:ring-2 focus:ring-blue-500 ${
+                validationErrors.name ? 'border-red-500 focus:border-red-500' : 'border-gray-300'
+              }`}
               required
               maxLength={255}
             />
+            {validationErrors.name && (
+              <p className="text-red-500 text-sm mt-1">{validationErrors.name[0]}</p>
+            )}
           </div>
 
           {/* Category */}
@@ -392,7 +426,9 @@ const ProductForm = ({ product = null, onBack, onSubmit, isEdit = false }) => {
               name="category_id"
               value={formData.category_id}
               onChange={handleChange}
-              className="w-full border border-gray-300 p-2 rounded-md text-black focus:ring-2 focus:ring-blue-500"
+              className={`w-full border p-2 rounded-md text-black focus:ring-2 focus:ring-blue-500 ${
+                validationErrors.category_id ? 'border-red-500 focus:border-red-500' : 'border-gray-300'
+              }`}
               required
             >
               <option value="">Select Category</option>
@@ -402,6 +438,9 @@ const ProductForm = ({ product = null, onBack, onSubmit, isEdit = false }) => {
                 </option>
               ))}
             </select>
+            {validationErrors.category_id && (
+              <p className="text-red-500 text-sm mt-1">{validationErrors.category_id[0]}</p>
+            )}
           </div>
 
           {/* Image Upload */}
@@ -413,8 +452,13 @@ const ProductForm = ({ product = null, onBack, onSubmit, isEdit = false }) => {
               type="file"
               accept="image/*"
               onChange={handleImageChange}
-              className="w-full border border-gray-300 p-2 rounded-md text-black"
+              className={`w-full border p-2 rounded-md text-black ${
+                validationErrors.image ? 'border-red-500' : 'border-gray-300'
+              }`}
             />
+            {validationErrors.image && (
+              <p className="text-red-500 text-sm mt-1">{validationErrors.image[0]}</p>
+            )}
             <p className="text-sm text-gray-500 mt-1">Max size: 2MB</p>
             
             {/* Image Preview Section */}
@@ -505,10 +549,15 @@ const ProductForm = ({ product = null, onBack, onSubmit, isEdit = false }) => {
                   step="0.01"
                   min="0"
                   placeholder="0.00"
-                  className="w-full border border-gray-300 p-2 pl-8 rounded-md text-black focus:ring-2 focus:ring-blue-500"
+                  className={`w-full border p-2 pl-8 rounded-md text-black focus:ring-2 focus:ring-blue-500 ${
+                    validationErrors.price ? 'border-red-500 focus:border-red-500' : 'border-gray-300'
+                  }`}
                   required
                 />
               </div>
+              {validationErrors.price && (
+                <p className="text-red-500 text-sm mt-1">{validationErrors.price[0]}</p>
+              )}
             </div>
           ) : (
             <div>
