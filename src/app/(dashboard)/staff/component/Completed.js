@@ -1,7 +1,9 @@
 "use client";
 import React, { useState, useEffect } from "react";
-import { PiEyesDuotone } from "react-icons/pi";
-import { HiSearch } from "react-icons/hi";
+import { PiEyesDuotone, PiCheckCircle } from "react-icons/pi";
+import { HiSearch, HiRefresh } from "react-icons/hi";
+import { MdVisibility, MdReceipt, MdCheckCircle } from "react-icons/md";
+import { FiCheckCircle } from "react-icons/fi";
 import Swal from "sweetalert2";
 
 const Completed = () => {
@@ -10,6 +12,15 @@ const Completed = () => {
   const [sortOption, setSortOption] = useState("Newest");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+
+  // Sugar level display mapping
+  const sugarLevelLabels = {
+    '0%': 'No Sugar',
+    '25%': 'Light Sweet',
+    '50%': 'Half Sweet', 
+    '75%': 'Less Sweet',
+    '100%': 'Regular'
+  };
 
   // Helper function to format date with time
   const formatDateTime = (dateString) => {
@@ -78,13 +89,16 @@ const Completed = () => {
       const data = await res.json();
       console.log("Fetched completed orders:", data);
       
-      // Transform and sort orders
+      // Transform and sort orders - handle proper backend structure
       const transformedOrders = (data.orders || data)
         .filter(order => order.order_status === "completed")
         .map(order => ({
           ...order,
           formattedDate: formatDateTime(order.created_at),
-          formattedTotal: `$${parseFloat(order.total_price || 0).toFixed(2)}`,
+          formattedTotal: `${parseFloat(order.total_price || 0).toFixed(2)}`,
+          // Use correct relationship name from backend
+          items: order.order_items || order.orderItems || [],
+          customer_name: order.customer_name || order.user?.name || order.user?.username || 'Guest'
         }));
 
       const sortedOrders = sortOrders(transformedOrders, sortOption);
@@ -127,13 +141,15 @@ const Completed = () => {
       const data = await res.json();
       const order = data.order || data;
 
-      // Format order items for display
-      const itemsHtml = order.items?.map(item => `
+      // Format order items for display - handle backend structure properly
+      const items = order.order_items || order.orderItems || [];
+      const itemsHtml = items.map(item => `
         <div style="text-align: left; margin: 8px 0; padding: 8px; background: #f8f9fa; border-radius: 4px;">
           <strong>${item.product_size?.product?.name || 'Unknown Product'}</strong><br>
-          <small>Size: ${item.product_size?.size || 'Standard'} | Quantity: ${item.quantity}</small><br>
+          <small>Size: ${item.product_size?.size === 'none' ? 'Standard' : (item.product_size?.size || 'Standard')} | Quantity: ${item.quantity}</small><br>
+          <small>Sugar Level: ${sugarLevelLabels[item.sugar_level] || item.sugar_level || 'Regular'}</small><br>
           ${item.toppings?.length > 0 ? `<small>Toppings: ${item.toppings.map(t => t.topping?.name).join(', ')}</small><br>` : ''}
-          <small>Price: $${parseFloat(item.price || 0).toFixed(2)}</small>
+          <small>Unit Price: ${parseFloat(item.unit_price || 0).toFixed(2)}</small>
         </div>
       `).join('') || '<p>No items found</p>';
 
@@ -141,10 +157,11 @@ const Completed = () => {
         title: `Order #${order.id} - Completed`,
         html: `
           <div style="text-align: left;">
-            <p><strong>Customer:</strong> ${order.user?.name || order.user?.username || 'Guest'}</p>
+            <p><strong>Customer:</strong> ${order.customer_name || order.user?.name || order.user?.username || 'Guest'}</p>
+            <p><strong>Order Number:</strong> ${order.order_number || 'N/A'}</p>
             <p><strong>Date:</strong> ${formatDateTime(order.created_at)}</p>
             <p><strong>Status:</strong> <span style="background: #D1FAE5; color: #047857; padding: 2px 8px; border-radius: 12px; font-size: 12px;">✓ Completed</span></p>
-            <p><strong>Total:</strong> $${parseFloat(order.total_price || 0).toFixed(2)}</p>
+            <p><strong>Total:</strong> ${parseFloat(order.total_price || 0).toFixed(2)}</p>
             <hr style="margin: 16px 0;">
             <h4>Order Items:</h4>
             ${itemsHtml}
@@ -186,8 +203,9 @@ const Completed = () => {
       const data = await res.json();
       const order = data.order || data;
 
-      // Calculate totals
-      const subtotal = order.items?.reduce((sum, item) => sum + (parseFloat(item.price) * item.quantity), 0) || 0;
+      // Calculate totals - handle backend structure properly
+      const items = order.order_items || order.orderItems || [];
+      const subtotal = items.reduce((sum, item) => sum + (parseFloat(item.unit_price) * item.quantity), 0);
       const tax = subtotal * 0.1; // 10% tax example
       const total = order.total_price || (subtotal + tax);
 
@@ -201,19 +219,21 @@ const Completed = () => {
           
           <div style="margin-bottom: 15px;">
             <p style="margin: 2px 0;"><strong>Order #:</strong> ${order.id}</p>
+            <p style="margin: 2px 0;"><strong>Order Number:</strong> ${order.order_number || 'N/A'}</p>
             <p style="margin: 2px 0;"><strong>Date:</strong> ${formatDateTime(order.created_at)}</p>
-            <p style="margin: 2px 0;"><strong>Customer:</strong> ${order.user?.name || order.user?.username || 'Guest'}</p>
+            <p style="margin: 2px 0;"><strong>Customer:</strong> ${order.customer_name || order.user?.name || order.user?.username || 'Guest'}</p>
           </div>
 
           <div style="border-bottom: 1px dashed #333; padding-bottom: 10px; margin-bottom: 10px;">
-            ${order.items?.map(item => `
+            ${items.map(item => `
               <div style="margin-bottom: 8px;">
                 <div style="display: flex; justify-content: space-between;">
                   <span style="font-weight: bold;">${item.product_size?.product?.name || 'Unknown'}</span>
-                  <span>$${(parseFloat(item.price) * item.quantity).toFixed(2)}</span>
+                  <span>${(parseFloat(item.unit_price) * item.quantity).toFixed(2)}</span>
                 </div>
                 <div style="font-size: 11px; color: #666;">
-                  ${item.product_size?.size || 'Standard'} x ${item.quantity}
+                  ${item.product_size?.size === 'none' ? 'Standard' : (item.product_size?.size || 'Standard')} x ${item.quantity}
+                  <br>Sugar: ${sugarLevelLabels[item.sugar_level] || item.sugar_level || 'Regular'}
                   ${item.toppings?.length > 0 ? `<br>+ ${item.toppings.map(t => t.topping?.name).join(', ')}` : ''}
                 </div>
               </div>
@@ -223,15 +243,15 @@ const Completed = () => {
           <div style="margin-bottom: 15px;">
             <div style="display: flex; justify-content: space-between;">
               <span>Subtotal:</span>
-              <span>$${subtotal.toFixed(2)}</span>
+              <span>${subtotal.toFixed(2)}</span>
             </div>
             <div style="display: flex; justify-content: space-between;">
               <span>Tax (10%):</span>
-              <span>$${tax.toFixed(2)}</span>
+              <span>${tax.toFixed(2)}</span>
             </div>
             <div style="display: flex; justify-content: space-between; font-weight: bold; border-top: 1px solid #333; padding-top: 5px; margin-top: 5px;">
               <span>TOTAL:</span>
-              <span>$${parseFloat(total).toFixed(2)}</span>
+              <span>${parseFloat(total).toFixed(2)}</span>
             </div>
           </div>
 
@@ -283,6 +303,8 @@ const Completed = () => {
   // Filter orders
   const filteredOrders = orders.filter((order) =>
     String(order.id).includes(searchTerm) ||
+    order.order_number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    order.customer_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     order.user?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     order.user?.username?.toLowerCase().includes(searchTerm.toLowerCase())
   );
@@ -291,7 +313,10 @@ const Completed = () => {
     <div className="p-4">
       {/* Header Section */}
       <div className="mb-6">
-        <h1 className="text-3xl font-bold mb-2 text-black">Completed Orders</h1>
+        <h1 className="text-3xl font-bold mb-2 text-black flex items-center gap-2">
+          <FiCheckCircle className="text-green-600" />
+          Completed Orders
+        </h1>
         <div className="flex justify-between items-center">
           <h2 className="text-xl font-semibold text-black">All Completed Orders ({filteredOrders.length})</h2>
           <div className="flex items-center space-x-4">
@@ -322,10 +347,11 @@ const Completed = () => {
             {/* Refresh Button */}
             <button
               onClick={fetchOrders}
-              className="px-4 py-2 bg-green-500 text-white rounded-md hover:bg-green-600 transition-colors duration-200"
+              className="px-4 py-2 bg-green-500 text-white rounded-md hover:bg-green-600 transition-colors duration-200 flex items-center gap-2"
               disabled={loading}
               title="Refresh orders"
             >
+              <HiRefresh className="w-4 h-4" />
               Refresh
             </button>
           </div>
@@ -359,8 +385,10 @@ const Completed = () => {
             <thead className="bg-gray-100">
               <tr>
                 <th className="p-3 border border-gray-300 font-semibold">Order ID</th>
+                <th className="p-3 border border-gray-300 font-semibold">Order Number</th>
                 <th className="p-3 border border-gray-300 font-semibold">Customer</th>
                 <th className="p-3 border border-gray-300 font-semibold">Date & Time</th>
+                <th className="p-3 border border-gray-300 font-semibold">Items</th>
                 <th className="p-3 border border-gray-300 font-semibold">Status</th>
                 <th className="p-3 border border-gray-300 font-semibold">Total</th>
                 <th className="p-3 border border-gray-300 font-semibold">Actions</th>
@@ -370,17 +398,35 @@ const Completed = () => {
               {filteredOrders.map((order) => (
                 <tr key={order.id} className="hover:bg-gray-50">
                   <td className="p-3 border border-gray-300 font-medium">#{order.id}</td>
+                  <td className="p-3 border border-gray-300 font-medium">
+                    {order.order_number || 'N/A'}
+                  </td>
                   <td className="p-3 border border-gray-300">
-                    {order.user?.name || order.user?.username || 'Guest'}
+                    {order.customer_name}
                   </td>
                   <td className="p-3 border border-gray-300 text-sm">
                     <div className="whitespace-nowrap">
                       {order.formattedDate}
                     </div>
                   </td>
+                  <td className="p-3 border border-gray-300 text-sm">
+                    <div className="max-w-48 overflow-hidden">
+                      {order.items?.slice(0, 2).map((item, idx) => (
+                        <div key={idx} className="text-xs text-gray-600 truncate">
+                          {item.product_size?.product?.name || 'Unknown'} x{item.quantity}
+                        </div>
+                      ))}
+                      {order.items?.length > 2 && (
+                        <div className="text-xs text-green-600">
+                          +{order.items.length - 2} more...
+                        </div>
+                      )}
+                    </div>
+                  </td>
                   <td className="p-3 border border-gray-300">
-                    <span className="px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                      ✓ Completed
+                    <span className="px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 flex items-center gap-1">
+                      <MdCheckCircle className="w-3 h-3" />
+                      Completed
                     </span>
                   </td>
                   <td className="p-3 border border-gray-300 font-medium">
@@ -393,14 +439,15 @@ const Completed = () => {
                         className="bg-blue-500 text-white hover:bg-blue-600 px-3 py-1 rounded text-sm transition-colors duration-200 flex items-center gap-1"
                         disabled={loading}
                       >
-                        <PiEyesDuotone className="w-4 h-4" />
+                        <MdVisibility className="w-4 h-4" />
                         View
                       </button>
                       <button
                         onClick={() => generateReceipt(order.id)}
-                        className="bg-gray-500 text-white hover:bg-gray-600 px-3 py-1 rounded text-sm transition-colors duration-200"
+                        className="bg-gray-500 text-white hover:bg-gray-600 px-3 py-1 rounded text-sm transition-colors duration-200 flex items-center gap-1"
                         disabled={loading}
                       >
+                        <MdReceipt className="w-4 h-4" />
                         Receipt
                       </button>
                     </div>

@@ -1,7 +1,9 @@
 "use client";
 import React, { useState, useEffect } from "react";
-import { PiEyesDuotone } from "react-icons/pi";
-import { HiSearch } from "react-icons/hi";
+import { PiEyesDuotone, PiPackage } from "react-icons/pi";
+import { HiSearch, HiRefresh } from "react-icons/hi";
+import { MdVisibility, MdCheckCircle } from "react-icons/md";
+import { FiPackage } from "react-icons/fi";
 import Swal from "sweetalert2";
 
 const ReadyToPickup = () => {
@@ -16,6 +18,15 @@ const ReadyToPickup = () => {
     { value: 'ready_for_pickup', label: 'Ready for Pickup', color: 'bg-blue-100 text-blue-800' },
     { value: 'completed', label: 'Completed', color: 'bg-green-100 text-green-800' }
   ];
+
+  // Sugar level display mapping
+  const sugarLevelLabels = {
+    '0%': 'No Sugar',
+    '25%': 'Light Sweet',
+    '50%': 'Half Sweet', 
+    '75%': 'Less Sweet',
+    '100%': 'Regular'
+  };
 
   // Helper function to format date with time
   const formatDateTime = (dateString) => {
@@ -84,13 +95,16 @@ const ReadyToPickup = () => {
       const data = await res.json();
       console.log("Fetched ready orders:", data);
       
-      // Transform and sort orders
+      // Transform and sort orders - handle proper backend structure
       const transformedOrders = (data.orders || data)
         .filter(order => order.order_status === "ready_for_pickup")
         .map(order => ({
           ...order,
           formattedDate: formatDateTime(order.created_at),
           formattedTotal: `$${parseFloat(order.total_price || 0).toFixed(2)}`,
+          // Use correct relationship name from backend
+          items: order.order_items || order.orderItems || [],
+          customer_name: order.customer_name || order.user?.name || order.user?.username || 'Guest'
         }));
 
       const sortedOrders = sortOrders(transformedOrders, sortOption);
@@ -183,7 +197,7 @@ const ReadyToPickup = () => {
     try {
       const confirmed = await Swal.fire({
         title: 'Mark as Completed?',
-        text: `Mark order #${orderId} as completed and ready for pickup?`,
+        text: `Mark order #${orderId} as completed and delivered?`,
         icon: 'question',
         showCancelButton: true,
         confirmButtonColor: '#10B981',
@@ -218,13 +232,15 @@ const ReadyToPickup = () => {
       const data = await res.json();
       const order = data.order || data;
 
-      // Format order items for display
-      const itemsHtml = order.items?.map(item => `
+      // Format order items for display - handle backend structure properly
+      const items = order.order_items || order.orderItems || [];
+      const itemsHtml = items.map(item => `
         <div style="text-align: left; margin: 8px 0; padding: 8px; background: #f8f9fa; border-radius: 4px;">
           <strong>${item.product_size?.product?.name || 'Unknown Product'}</strong><br>
-          <small>Size: ${item.product_size?.size || 'Standard'} | Quantity: ${item.quantity}</small><br>
+          <small>Size: ${item.product_size?.size === 'none' ? 'Standard' : (item.product_size?.size || 'Standard')} | Quantity: ${item.quantity}</small><br>
+          <small>Sugar Level: ${sugarLevelLabels[item.sugar_level] || item.sugar_level || 'Regular'}</small><br>
           ${item.toppings?.length > 0 ? `<small>Toppings: ${item.toppings.map(t => t.topping?.name).join(', ')}</small><br>` : ''}
-          <small>Price: $${parseFloat(item.price || 0).toFixed(2)}</small>
+          <small>Unit Price: $${parseFloat(item.unit_price || 0).toFixed(2)}</small>
         </div>
       `).join('') || '<p>No items found</p>';
 
@@ -232,13 +248,16 @@ const ReadyToPickup = () => {
         title: `Order #${order.id} Details`,
         html: `
           <div style="text-align: left;">
-            <p><strong>Customer:</strong> ${order.user?.name || order.user?.username || 'Guest'}</p>
+            <p><strong>Customer:</strong> ${order.customer_name || order.user?.name || order.user?.username || 'Guest'}</p>
+            <p><strong>Order Number:</strong> ${order.order_number || 'N/A'}</p>
             <p><strong>Date:</strong> ${formatDateTime(order.created_at)}</p>
             <p><strong>Status:</strong> <span style="background: #DBEAFE; color: #1E40AF; padding: 2px 8px; border-radius: 12px; font-size: 12px;">Ready for Pickup</span></p>
             <p><strong>Total:</strong> $${parseFloat(order.total_price || 0).toFixed(2)}</p>
             <hr style="margin: 16px 0;">
             <h4>Order Items:</h4>
             ${itemsHtml}
+            <hr style="margin: 16px 0;">
+            <p style="color: #1E40AF;"><strong>📦 This order is ready for customer pickup!</strong></p>
           </div>
         `,
         width: '600px',
@@ -267,6 +286,8 @@ const ReadyToPickup = () => {
   // Filter orders
   const filteredOrders = orders.filter((order) =>
     String(order.id).includes(searchTerm) ||
+    order.order_number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    order.customer_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     order.user?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     order.user?.username?.toLowerCase().includes(searchTerm.toLowerCase())
   );
@@ -275,7 +296,10 @@ const ReadyToPickup = () => {
     <div className="p-4">
       {/* Header Section */}
       <div className="mb-6">
-        <h1 className="text-3xl font-bold mb-2 text-black">Ready for Pickup</h1>
+        <h1 className="text-3xl font-bold mb-2 text-black flex items-center gap-2">
+          <FiPackage className="text-blue-600" />
+          Ready for Pickup
+        </h1>
         <div className="flex justify-between items-center">
           <h2 className="text-xl font-semibold text-black">Orders Ready ({filteredOrders.length})</h2>
           <div className="flex items-center space-x-4">
@@ -306,10 +330,11 @@ const ReadyToPickup = () => {
             {/* Refresh Button */}
             <button
               onClick={fetchOrders}
-              className="px-4 py-2 bg-green-500 text-white rounded-md hover:bg-green-600 transition-colors duration-200"
+              className="px-4 py-2 bg-green-500 text-white rounded-md hover:bg-green-600 transition-colors duration-200 flex items-center gap-2"
               disabled={loading}
               title="Refresh orders"
             >
+              <HiRefresh className="w-4 h-4" />
               Refresh
             </button>
           </div>
@@ -343,8 +368,10 @@ const ReadyToPickup = () => {
             <thead className="bg-gray-100">
               <tr>
                 <th className="p-3 border border-gray-300 font-semibold">Order ID</th>
+                <th className="p-3 border border-gray-300 font-semibold">Order Number</th>
                 <th className="p-3 border border-gray-300 font-semibold">Customer</th>
                 <th className="p-3 border border-gray-300 font-semibold">Date & Time</th>
+                <th className="p-3 border border-gray-300 font-semibold">Items</th>
                 <th className="p-3 border border-gray-300 font-semibold">Status</th>
                 <th className="p-3 border border-gray-300 font-semibold">Total</th>
                 <th className="p-3 border border-gray-300 font-semibold">Actions</th>
@@ -354,16 +381,34 @@ const ReadyToPickup = () => {
               {filteredOrders.map((order) => (
                 <tr key={order.id} className="hover:bg-gray-50">
                   <td className="p-3 border border-gray-300 font-medium">#{order.id}</td>
+                  <td className="p-3 border border-gray-300 font-medium">
+                    {order.order_number || 'N/A'}
+                  </td>
                   <td className="p-3 border border-gray-300">
-                    {order.user?.name || order.user?.username || 'Guest'}
+                    {order.customer_name}
                   </td>
                   <td className="p-3 border border-gray-300 text-sm">
                     <div className="whitespace-nowrap">
                       {order.formattedDate}
                     </div>
                   </td>
+                  <td className="p-3 border border-gray-300 text-sm">
+                    <div className="max-w-48 overflow-hidden">
+                      {order.items?.slice(0, 2).map((item, idx) => (
+                        <div key={idx} className="text-xs text-gray-600 truncate">
+                          {item.product_size?.product?.name || 'Unknown'} x{item.quantity}
+                        </div>
+                      ))}
+                      {order.items?.length > 2 && (
+                        <div className="text-xs text-blue-600">
+                          +{order.items.length - 2} more...
+                        </div>
+                      )}
+                    </div>
+                  </td>
                   <td className="p-3 border border-gray-300">
-                    <span className="px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                    <span className="px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 flex items-center gap-1">
+                      <FiPackage className="w-3 h-3" />
                       Ready for Pickup
                     </span>
                   </td>
@@ -377,14 +422,15 @@ const ReadyToPickup = () => {
                         className="bg-blue-500 text-white hover:bg-blue-600 px-3 py-1 rounded text-sm transition-colors duration-200 flex items-center gap-1"
                         disabled={loading}
                       >
-                        <PiEyesDuotone className="w-4 h-4" />
+                        <MdVisibility className="w-4 h-4" />
                         View
                       </button>
                       <button
                         onClick={() => markAsCompleted(order.id)}
-                        className="bg-green-500 text-white hover:bg-green-600 px-3 py-1 rounded text-sm transition-colors duration-200"
+                        className="bg-green-500 text-white hover:bg-green-600 px-3 py-1 rounded text-sm transition-colors duration-200 flex items-center gap-1"
                         disabled={loading}
                       >
+                        <MdCheckCircle className="w-4 h-4" />
                         Complete Order
                       </button>
                     </div>

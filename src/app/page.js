@@ -60,7 +60,7 @@ export default function Home() {
 
     if (userRole === "admin") {
       router.push("/admin");
-    } else if (userRole === "shopOwner") {
+    } else if (userRole === "shop_owner") {
       router.push("/shop-owner");
     } else if (userRole === "staff") {
       router.push("/staff");

@@ -3,11 +3,11 @@
 import React, { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "../context/AuthContext";
+import { useNotificationContext } from "../context/NotificationContext";
 
 const FloatingOrderButton = () => {
   const { user } = useAuth();
-  const [activeOrder, setActiveOrder] = useState(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const { activeOrder, refreshData } = useNotificationContext(); // ← Now works!
   const [position, setPosition] = useState({ x: null, y: null });
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
@@ -16,29 +16,34 @@ const FloatingOrderButton = () => {
   const buttonRef = useRef(null);
   const router = useRouter();
 
-  // Initialize position from localStorage or default
+  // Initialize position
   useEffect(() => {
     const savedPosition = localStorage.getItem('floatingOrderButtonPosition');
     if (savedPosition) {
-      const parsed = JSON.parse(savedPosition);
-      setPosition(parsed);
+      setPosition(JSON.parse(savedPosition));
     } else {
-      // Default position (bottom-right)
       setPosition({ x: window.innerWidth - 120, y: window.innerHeight - 160 });
     }
   }, []);
 
-  // Save position to localStorage when it changes
+  // Save position changes
   useEffect(() => {
     if (position.x !== null && position.y !== null) {
       localStorage.setItem('floatingOrderButtonPosition', JSON.stringify(position));
     }
   }, [position]);
 
+  // Force refresh when component mounts to ensure we have latest data
+  useEffect(() => {
+    if (user && refreshData) {
+      refreshData();
+    }
+  }, [user, refreshData]);
+
   // Constrain position to viewport
   const constrainPosition = (x, y) => {
-    const buttonWidth = 100; // Approximate button width
-    const buttonHeight = 50; // Approximate button height
+    const buttonWidth = 100;
+    const buttonHeight = 50;
     const margin = 10;
 
     const maxX = window.innerWidth - buttonWidth - margin;
@@ -50,7 +55,7 @@ const FloatingOrderButton = () => {
     };
   };
 
-  // Handle window resize to keep button in bounds
+  // Handle window resize
   useEffect(() => {
     const handleResize = () => {
       if (position.x !== null && position.y !== null) {
@@ -83,7 +88,6 @@ const FloatingOrderButton = () => {
     const newX = e.clientX - dragStart.x;
     const newY = e.clientY - dragStart.y;
     
-    // Check if this is actual dragging (moved more than 5 pixels)
     const dragDistance = Math.sqrt(
       Math.pow(e.clientX - clickStart.x, 2) + Math.pow(e.clientY - clickStart.y, 2)
     );
@@ -96,18 +100,17 @@ const FloatingOrderButton = () => {
     setPosition(constrained);
   };
 
-  const handleMouseUp = (e) => {
+  const handleMouseUp = () => {
     if (isDragging) {
       setIsDragging(false);
       
-      // If it was just a click (not a drag), navigate to order status
       if (!hasBeenDragged) {
         handleNavigateToOrderStatus();
       }
     }
   };
 
-  // Touch event handlers for mobile
+  // Touch handlers
   const handleTouchStart = (e) => {
     e.preventDefault();
     const touch = e.touches[0];
@@ -127,7 +130,6 @@ const FloatingOrderButton = () => {
     const newX = touch.clientX - dragStart.x;
     const newY = touch.clientY - dragStart.y;
     
-    // Check if this is actual dragging
     const dragDistance = Math.sqrt(
       Math.pow(touch.clientX - clickStart.x, 2) + Math.pow(touch.clientY - clickStart.y, 2)
     );
@@ -140,18 +142,17 @@ const FloatingOrderButton = () => {
     setPosition(constrained);
   };
 
-  const handleTouchEnd = (e) => {
+  const handleTouchEnd = () => {
     if (isDragging) {
       setIsDragging(false);
       
-      // If it was just a tap (not a drag), navigate to order status
       if (!hasBeenDragged) {
         handleNavigateToOrderStatus();
       }
     }
   };
 
-  // Add global event listeners for mouse events
+  // Global event listeners
   useEffect(() => {
     if (isDragging) {
       document.addEventListener('mousemove', handleMouseMove);
@@ -168,60 +169,6 @@ const FloatingOrderButton = () => {
     }
   }, [isDragging, dragStart, position, hasBeenDragged]);
 
-  // Your existing order fetching logic
-  useEffect(() => {
-    if (!user) {
-      setIsLoading(false);
-      return;
-    }
-
-    const fetchActiveOrder = async () => {
-      try {
-        setIsLoading(true);
-        const token = localStorage.getItem("auth_token");
-        
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/orders`, {
-          headers: {
-            Authorization: token ? `Bearer ${token}` : "",
-            Accept: "application/json",
-            "Content-Type": "application/json",
-          },
-          credentials: "include",
-          cache: "no-store",
-        });
-
-        if (!response.ok) {
-          throw new Error("Failed to fetch orders");
-        }
-
-        const data = await response.json();
-        console.log("Orders fetched:", data);
-        
-        // Find the most recent order that's not completed
-        if (data.orders && data.orders.length > 0) {
-          const activeOrder = data.orders.find(order => 
-            order.order_status === 'preparing' || order.order_status === 'ready_for_pickup'
-          );
-          
-          if (activeOrder) {
-            setActiveOrder(activeOrder);
-          }
-        }
-      } catch (error) {
-        console.error("Error fetching orders:", error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchActiveOrder();
-    
-    // Refresh order status every 30 seconds
-    const interval = setInterval(fetchActiveOrder, 30000);
-    
-    return () => clearInterval(interval);
-  }, [user]);
-
   const handleNavigateToOrderStatus = () => {
     if (activeOrder && !hasBeenDragged) {
       router.push(`/OrderSuc?orderId=${activeOrder.id}&status=${activeOrder.order_status}`);
@@ -230,30 +177,30 @@ const FloatingOrderButton = () => {
 
   const getStatusText = (status) => {
     switch (status) {
-      case 'preparing':
-        return 'Preparing';
-      case 'ready_for_pickup':
-        return 'Ready';
-      case 'completed':
-        return 'Completed';
-      default:
-        return 'View Status';
+      case 'preparing': return 'Preparing';
+      case 'ready_for_pickup': return 'Ready';
+      case 'completed': return 'Completed';
+      default: return 'View Status';
     }
   };
 
   const getStatusColor = (status) => {
     switch (status) {
-      case 'preparing':
-        return 'bg-orange-500 hover:bg-orange-600';
-      case 'ready_for_pickup':
-        return 'bg-green-500 hover:bg-green-600';
-      default:
-        return 'bg-yellow-500 hover:bg-yellow-600';
+      case 'preparing': return 'bg-orange-500 hover:bg-orange-600';
+      case 'ready_for_pickup': return 'bg-green-500 hover:bg-green-600';
+      default: return 'bg-yellow-500 hover:bg-yellow-600';
     }
   };
 
-  // Don't show if loading, no user, no active order, or position not set
-  if (isLoading || !user || !activeOrder || position.x === null) {
+  // Debug logging (remove in production)
+  console.log('FloatingOrderButton Debug:', { 
+    user: !!user, 
+    activeOrder, 
+    position 
+  });
+
+  // Don't show if no user, no active order, or position not set
+  if (!user || !activeOrder || position.x === null) {
     return null;
   }
 
@@ -278,7 +225,7 @@ const FloatingOrderButton = () => {
         } ${isDragging ? 'scale-110 shadow-2xl' : ''}`}
       >
         <div className="flex items-center space-x-2">
-          {/* Drag indicator (optional) */}
+          {/* Drag indicator */}
           <div className="flex flex-col space-y-1 opacity-30">
             <div className="w-1 h-1 bg-white rounded-full"></div>
             <div className="w-1 h-1 bg-white rounded-full"></div>
@@ -306,19 +253,6 @@ const FloatingOrderButton = () => {
           </span>
         </div>
       </div>
-      
-      {/* Optional: Reset position button (appears on long press/hover) */}
-      {isDragging && (
-        <div 
-          className="absolute -top-8 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs px-2 py-1 rounded whitespace-nowrap"
-          onClick={(e) => {
-            e.stopPropagation();
-            setPosition({ x: window.innerWidth - 120, y: window.innerHeight - 160 });
-          }}
-        >
-          Reset Position
-        </div>
-      )}
     </div>
   );
 };

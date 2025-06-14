@@ -1,6 +1,6 @@
 "use client";
 import React, { useState, useEffect } from "react";
-import { HiSearch, HiPlus, HiQrcode, HiTrash, HiClipboard } from "react-icons/hi";
+import { HiSearch, HiPlus, HiQrcode, HiTrash, HiClipboard, HiRefresh } from "react-icons/hi";
 import { useAuth } from "@/app/context/AuthContext";
 import { useRouter } from "next/navigation";
 import Swal from "sweetalert2";
@@ -11,12 +11,22 @@ const InvitationManagement = () => {
   const [sortOption, setSortOption] = useState("Newest");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [creating, setCreating] = useState(false);
+  const [refreshing, setRefreshing] = useState(false); // Separate state for refresh
   const { user } = useAuth();
   const router = useRouter();
 
-  const fetchInvitations = async () => {
+  // Check if user has permission (matching your existing backend roles)
+  const hasCreatePermission = user && ['admin', 'shop_owner'].includes(user.role);
+  const hasViewPermission = user && ['admin', 'shop_owner', 'staff'].includes(user.role);
+
+  const fetchInvitations = async (isRefresh = false) => {
     try {
-      setLoading(true);
+      if (isRefresh) {
+        setRefreshing(true);
+      } else {
+        setLoading(true);
+      }
       setError(null);
       
       const token = localStorage.getItem("auth_token");
@@ -25,7 +35,14 @@ const InvitationManagement = () => {
         throw new Error("Authentication token not found");
       }
 
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/invitations`, {
+      // Use your existing endpoint structure
+      const endpoint = user.role === 'admin' 
+        ? '/admin/invitations' 
+        : user.role === 'shop_owner' 
+        ? '/shop/invitations' 
+        : '/staff/invitations';
+
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}${endpoint}`, {
         headers: {
           "Authorization": `Bearer ${token}`,
           "Accept": "application/json",
@@ -43,22 +60,30 @@ const InvitationManagement = () => {
       }
 
       const data = await res.json();
-      console.log("API Response:", data); // Debug log to see the structure
+      console.log("API Response:", data);
       
-      // Handle different API response structures
-      const invitationsArray = Array.isArray(data) ? data : (data.data || data.invitations || []);
+      // Your backend returns array directly (based on your controller)
+      const invitationsArray = Array.isArray(data) ? data : [];
       
       if (!Array.isArray(invitationsArray)) {
+        console.error("Invalid response format:", data);
         throw new Error("Invalid response format - expected array of invitations");
       }
       
-      const invitationsWithDates = invitationsArray.map(invitation => ({
+      // Ensure all invitations have required fields with defaults
+      const invitationsWithDefaults = invitationsArray.map(invitation => ({
         ...invitation,
+        // Map your backend fields to frontend expectations
+        id: invitation.id || invitation.token,
+        token: invitation.token,
+        table_number: invitation.table_number || 'N/A',
         created_at: invitation.created_at || new Date().toISOString(),
-        expires_at: invitation.expires_at || new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
+        expires_at: invitation.expires_at || new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+        user_id: invitation.user_id,
+        role: invitation.role || 'guest'
       }));
       
-      const sortedInvitations = invitationsWithDates.sort((a, b) => 
+      const sortedInvitations = invitationsWithDefaults.sort((a, b) => 
         new Date(b.created_at) - new Date(a.created_at)
       );
       
@@ -72,14 +97,17 @@ const InvitationManagement = () => {
       }
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   };
 
   useEffect(() => {
-    if (user && user.role === "admin") {
+    if (user) {
+      if (!hasViewPermission) {
+        router.push("/");
+        return;
+      }
       fetchInvitations();
-    } else if (user && user.role !== "admin") {
-      router.push("/");
     }
   }, [user, router]);
 
@@ -96,181 +124,272 @@ const InvitationManagement = () => {
     setInvitations(sortedInvitations);
   };
 
-  const handleCreateInvitation = async () => {
-    try {
-      // First, prompt for table number
-      const { value: tableNumber } = await Swal.fire({
-        title: 'Create Table Invitation',
-        input: 'text',
-        inputLabel: 'Table Number',
-        inputPlaceholder: 'Enter table number (e.g., T1, A5, 12)',
-        inputValidator: (value) => {
-          if (!value || value.trim() === '') {
-            return 'Please enter a table number';
-          }
-          if (value.length > 10) {
-            return 'Table number too long (max 10 characters)';
-          }
-          return null;
-        },
-        showCancelButton: true,
-        confirmButtonText: 'Create Invitation',
-        cancelButtonText: 'Cancel'
-      });
+  const validateTableNumber = (tableNumber) => {
+    if (!tableNumber || tableNumber.trim() === '') {
+      return 'Please enter a table number';
+    }
+    if (tableNumber.length > 10) {
+      return 'Table number too long (max 10 characters)';
+    }
+    return null;
+  };
 
-      if (!tableNumber) {
-        return; // User cancelled
+const handleCreateInvitation = async () => {
+  if (!hasCreatePermission) {
+    Swal.fire({
+      title: 'Access Denied',
+      text: 'You do not have permission to create invitations',
+      icon: 'error'
+    });
+    return;
+  }
+
+  try {
+    // Prompt for table number
+    const { value: tableNumber } = await Swal.fire({
+      title: 'Create Table Invitation',
+      input: 'text',
+      inputLabel: 'Table Number',
+      inputPlaceholder: 'Enter table number (e.g., T1, A5, 12)',
+      inputValidator: validateTableNumber,
+      showCancelButton: true,
+      confirmButtonText: 'Create Invitation',
+      cancelButtonText: 'Cancel',
+      didOpen: () => {
+        const input = Swal.getInput();
+        if (input) {
+          input.focus();
+          input.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+              Swal.clickConfirm();
+            }
+          });
+        }
+      }
+    });
+
+    if (!tableNumber) {
+      return; // User cancelled
+    }
+
+    setCreating(true);
+    
+    const token = localStorage.getItem("auth_token");
+    
+    if (!token) {
+      throw new Error("Authentication token not found");
+    }
+    
+    // Use your existing endpoint
+    const endpoint = user.role === 'admin' ? '/admin/invitations' : '/shop/invitations';
+    
+    // FIXED: Send the request body that matches your backend expectations
+    const requestBody = {
+      table_number: tableNumber.trim()
+      // Remove the role field - let your backend set it
+      // Your backend controller sets role: 'guest' internally
+    };
+
+    console.log('Creating invitation with:', requestBody);
+    
+    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}${endpoint}`, {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${token}`,
+        "Accept": "application/json",
+        "Content-Type": "application/json",
+      },
+      credentials: "include",
+      body: JSON.stringify(requestBody),
+    });
+    
+    if (!res.ok) {
+      const errorData = await res.json();
+      
+      // Handle your backend's 409 conflict response
+      if (res.status === 409) {
+        const result = await Swal.fire({
+          title: 'Table Already Active',
+          html: `
+            <div class="text-center">
+              <p class="mb-3">Table <strong>${tableNumber}</strong> already has an active invitation.</p>
+              <p class="text-sm text-gray-600">What would you like to do?</p>
+            </div>
+          `,
+          icon: 'warning',
+          showCancelButton: true,
+          confirmButtonText: 'View Existing',
+          cancelButtonText: 'Cancel',
+          showDenyButton: true,
+          denyButtonText: 'Revoke & Create New',
+          denyButtonColor: '#d33',
+        });
+
+        if (result.isConfirmed) {
+          // Highlight existing invitation
+          const existingInvitation = errorData.existing_invitation;
+          if (existingInvitation) {
+            highlightInvitation(existingInvitation.token);
+          }
+          return;
+        } else if (result.isDenied) {
+          // Revoke existing and create new
+          try {
+            await handleDeleteInvitation(errorData.existing_invitation.token, false);
+            setTimeout(() => handleCreateInvitation(), 500);
+            return;
+          } catch (revokeError) {
+            throw new Error(`Failed to revoke existing invitation: ${revokeError.message}`);
+          }
+        } else {
+          return; // User cancelled
+        }
+      }
+      
+      throw new Error(errorData.message || "Failed to create invitation");
+    }
+    
+    const newInvitation = await res.json();
+    console.log('New invitation created:', newInvitation);
+    
+    // Your backend returns the invitation object directly
+    // Add to state with proper structure
+    const invitationWithDefaults = {
+      ...newInvitation,
+      id: newInvitation.id || newInvitation.token,
+      token: newInvitation.token,
+      table_number: newInvitation.table_number,
+      created_at: newInvitation.created_at,
+      expires_at: newInvitation.expires_at,
+      user_id: newInvitation.user_id
+    };
+    
+    setInvitations(prevInvitations => {
+      const updated = [invitationWithDefaults, ...prevInvitations];
+      return updated.sort((a, b) => {
+        if (sortOption === "Newest") {
+          return new Date(b.created_at) - new Date(a.created_at);
+        } else {
+          return new Date(a.created_at) - new Date(b.created_at);
+        }
+      });
+    });
+    
+    // Success message
+    await Swal.fire({
+      title: 'Success!',
+      html: `
+        <div class="text-center">
+          <p class="mb-2">Invitation created for <strong>Table ${tableNumber}</strong></p>
+          <p class="text-sm text-gray-600">Token: <code class="bg-gray-100 px-2 py-1 rounded">${newInvitation.token.substring(0, 8)}...</code></p>
+        </div>
+      `,
+      icon: 'success',
+      timer: 4000,
+      showConfirmButton: true,
+      confirmButtonText: 'Great!'
+    });
+
+    // Highlight the new invitation
+    setTimeout(() => highlightInvitation(newInvitation.token), 100);
+    
+  } catch (error) {
+    console.error("Error creating invitation:", error);
+    
+    // Better error handling for database constraint errors
+    let errorMessage = error.message;
+    if (error.message.includes('SQLSTATE[23514]') || error.message.includes('check constraint')) {
+      errorMessage = 'Database configuration error. Please contact your administrator.';
+    } else if (error.message.includes('user_invitations_role_check')) {
+      errorMessage = 'Invalid role configuration. Please check your database settings.';
+    }
+    
+    Swal.fire({
+      title: 'Error!',
+      text: errorMessage,
+      icon: 'error',
+      confirmButtonText: 'OK',
+    });
+  } finally {
+    setCreating(false);
+  }
+};
+
+  const highlightInvitation = (token) => {
+    const invitationElement = document.querySelector(`[data-token="${token}"]`);
+    if (invitationElement) {
+      invitationElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      invitationElement.classList.add('ring-2', 'ring-blue-400', 'ring-opacity-75', 'bg-blue-50');
+      setTimeout(() => {
+        invitationElement.classList.remove('ring-2', 'ring-blue-400', 'ring-opacity-75', 'bg-blue-50');
+      }, 3000);
+    }
+  };
+
+  const handleDeleteInvitation = async (token, showConfirmation = true) => {
+    if (!hasCreatePermission) {
+      Swal.fire({
+        title: 'Access Denied',
+        text: 'You do not have permission to revoke invitations',
+        icon: 'error'
+      });
+      return;
+    }
+
+    try {
+      const invitation = invitations.find(inv => inv.token === token);
+      
+      if (showConfirmation) {
+        const confirmed = await Swal.fire({
+          title: 'Are you sure?',
+          html: `
+            <div class="text-center">
+              <p>This will permanently revoke the invitation for:</p>
+              <p class="mt-2"><strong>Table ${invitation?.table_number || 'N/A'}</strong></p>
+              <p class="text-sm text-gray-600">Created: ${new Date(invitation?.created_at).toLocaleDateString()}</p>
+            </div>
+          `,
+          icon: 'warning',
+          showCancelButton: true,
+          confirmButtonColor: '#d33',
+          cancelButtonColor: '#3085d6',
+          confirmButtonText: 'Yes, revoke!',
+          cancelButtonText: 'Cancel',
+        });
+
+        if (!confirmed.isConfirmed) {
+          return;
+        }
       }
 
-      setLoading(true);
+      const authToken = localStorage.getItem("auth_token");
       
-      const token = localStorage.getItem("auth_token");
-      
-      if (!token) {
+      if (!authToken) {
         throw new Error("Authentication token not found");
       }
       
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/invitations`, {
-        method: "POST",
+      // Use your existing revoke endpoint
+      const endpoint = user.role === 'admin' ? `/admin/invitations/${token}` : `/shop/invitations/${token}`;
+      
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}${endpoint}`, {
+        method: "DELETE",
         headers: {
-          "Authorization": `Bearer ${token}`,
+          "Authorization": `Bearer ${authToken}`,
           "Accept": "application/json",
           "Content-Type": "application/json",
         },
         credentials: "include",
-        body: JSON.stringify({
-          table_number: tableNumber.trim()
-        }),
       });
       
       if (!res.ok) {
         const errorData = await res.json();
-        
-        // Handle specific error cases
-        if (res.status === 409) {
-          // Table already has an active invitation
-          const result = await Swal.fire({
-            title: 'Table Already Active',
-            text: `Table ${tableNumber} already has an active invitation. Would you like to view the existing invitation or revoke it and create a new one?`,
-            icon: 'warning',
-            showCancelButton: true,
-            confirmButtonText: 'View Existing',
-            cancelButtonText: 'Cancel',
-            showDenyButton: true,
-            denyButtonText: 'Revoke & Create New',
-            denyButtonColor: '#d33',
-          });
-
-          if (result.isConfirmed) {
-            // Scroll to and highlight the existing invitation
-            const existingInvitation = errorData.existing_invitation;
-            if (existingInvitation) {
-              // Find the invitation in the current list and highlight it
-              const invitationElement = document.querySelector(`[data-token="${existingInvitation.token}"]`);
-              if (invitationElement) {
-                invitationElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                invitationElement.classList.add('ring-2', 'ring-yellow-400', 'ring-opacity-75');
-                setTimeout(() => {
-                  invitationElement.classList.remove('ring-2', 'ring-yellow-400', 'ring-opacity-75');
-                }, 3000);
-              }
-            }
-            return;
-          } else if (result.isDenied) {
-            // Revoke the existing invitation and create a new one
-            try {
-              await handleDeleteInvitation(errorData.existing_invitation.token, errorData.existing_invitation.created_at);
-              // Recursively call create invitation after successful deletion
-              await handleCreateInvitation();
-              return;
-            } catch (revokeError) {
-              throw new Error(`Failed to revoke existing invitation: ${revokeError.message}`);
-            }
-          } else {
-            return; // User cancelled
-          }
-        }
-        
-        throw new Error(errorData.message || "Failed to create invitation");
+        throw new Error(errorData.message || "Failed to revoke invitation");
       }
       
-      const newInvitation = await res.json();
+      // Remove from state
+      setInvitations(invitations.filter(invitation => invitation.token !== token));
       
-      setInvitations(prevInvitations => {
-        const updated = [newInvitation, ...prevInvitations];
-        return updated.sort((a, b) => {
-          if (sortOption === "Newest") {
-            return new Date(b.created_at) - new Date(a.created_at);
-          } else {
-            return new Date(a.created_at) - new Date(b.created_at);
-          }
-        });
-      });
-      
-      await Swal.fire({
-        title: 'Success!',
-        html: `
-          <div class="text-center">
-            <p class="mb-2">Invitation created for <strong>Table ${tableNumber}</strong></p>
-            <p class="text-sm text-gray-600">Expires: ${new Date(newInvitation.expires_at).toLocaleDateString()} at ${new Date(newInvitation.expires_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</p>
-          </div>
-        `,
-        icon: 'success',
-        timer: 3000,
-        showConfirmButton: false,
-      });
-    } catch (error) {
-      console.error("Error creating invitation:", error);
-      Swal.fire({
-        title: 'Error!',
-        text: error.message,
-        icon: 'error',
-        confirmButtonText: 'OK',
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleDeleteInvitation = async (token, created_at) => {
-    try {
-      const confirmed = await Swal.fire({
-        title: 'Are you sure?',
-        text: `This will permanently revoke the invitation created on ${new Date(created_at).toLocaleDateString()}.`,
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonColor: '#d33',
-        cancelButtonColor: '#3085d6',
-        confirmButtonText: 'Yes, revoke!',
-        cancelButtonText: 'Cancel',
-      });
-
-      if (confirmed.isConfirmed) {
-        setLoading(true);
-        
-        const authToken = localStorage.getItem("auth_token");
-        
-        if (!authToken) {
-          throw new Error("Authentication token not found");
-        }
-        
-        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/invitations/${token}`, {
-          method: "DELETE",
-          headers: {
-            "Authorization": `Bearer ${authToken}`,
-            "Accept": "application/json",
-            "Content-Type": "application/json",
-          },
-          credentials: "include",
-        });
-        
-        if (!res.ok) {
-          const errorData = await res.json();
-          throw new Error(errorData.message || "Failed to revoke invitation");
-        }
-        
-        setInvitations(invitations.filter(invitation => invitation.token !== token));
-        
+      if (showConfirmation) {
         await Swal.fire({
           title: 'Revoked!',
           text: 'The invitation has been revoked.',
@@ -287,23 +406,43 @@ const InvitationManagement = () => {
         icon: 'error',
         confirmButtonText: 'OK',
       });
-    } finally {
-      setLoading(false);
     }
   };
 
   const copyInvitationLink = (invitation) => {
     const tableParam = invitation.table_number ? `&table=${encodeURIComponent(invitation.table_number)}` : '';
     const link = `${window.location.origin}/guest-login?token=${invitation.token}${tableParam}`;
-    navigator.clipboard.writeText(link);
-    Swal.fire({
-      title: 'Link Copied!',
-      text: link,
-      icon: 'success',
-      timer: 2000,
-      showConfirmButton: false,
-      position: 'top-end',
-      toast: true
+    
+    navigator.clipboard.writeText(link).then(() => {
+      Swal.fire({
+        title: 'Link Copied!',
+        html: `
+          <div class="text-center">
+            <p class="mb-2">Invitation link copied to clipboard</p>
+            <p class="text-xs bg-gray-100 p-2 rounded break-all">${link}</p>
+          </div>
+        `,
+        icon: 'success',
+        timer: 3000,
+        showConfirmButton: false,
+        position: 'top-end',
+        toast: true,
+        width: '400px'
+      });
+    }).catch(() => {
+      // Fallback for older browsers
+      Swal.fire({
+        title: 'Copy Link',
+        input: 'text',
+        inputValue: link,
+        inputAttributes: {
+          readonly: true,
+          style: 'font-size: 12px;'
+        },
+        text: 'Copy the link below:',
+        showConfirmButton: true,
+        confirmButtonText: 'Close'
+      });
     });
   };
 
@@ -311,16 +450,20 @@ const InvitationManagement = () => {
     try {
       const authToken = localStorage.getItem("auth_token");
       
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/admin/invitations/${token}/qrcode`, {
+      // Use your existing QR endpoint
+      const endpoint = user.role === 'admin' 
+        ? `/admin/invitations/${token}/qrcode` 
+        : `/shop/invitations/${token}/qrcode`;
+      
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}${endpoint}`, {
         headers: {
           "Authorization": `Bearer ${authToken}`,
-          "Accept": "image/svg+xml", // Accept SVG directly
+          "Accept": "image/svg+xml", // Your backend returns SVG
         },
         credentials: "include",
       });
       
       console.log("QR Code Response Status:", res.status);
-      console.log("QR Code Response Headers:", res.headers.get('content-type'));
       
       if (!res.ok) {
         const errorText = await res.text();
@@ -331,83 +474,62 @@ const InvitationManagement = () => {
       const contentType = res.headers.get('content-type');
       console.log("Content Type:", contentType);
       
-      // Handle SVG response
+      // Handle SVG response (your backend returns this)
       if (contentType && contentType.includes('image/svg+xml')) {
         const svgText = await res.text();
         console.log("SVG Response received successfully");
         
-        // Create SVG data URL for display and download
-        const svgDataUrl = 'data:image/svg+xml;base64,' + btoa(svgText);
+        // Create SVG data URL for download
+        const svgDataUrl = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgText)));
         
-        // Get the invitation to build the correct URL with table number
+        // Get the invitation details
         const invitation = invitations.find(inv => inv.token === token);
         const tableParam = invitation?.table_number ? `&table=${encodeURIComponent(invitation.table_number)}` : '';
         const invitationUrl = `${window.location.origin}/guest-login?token=${token}${tableParam}`;
         
         // Show QR code in modal
         await Swal.fire({
-          title: 'QR Code for Guest Access',
+          title: `QR Code - Table ${invitation?.table_number || 'N/A'}`,
           html: `
             <div class="text-center">
-              <div class="mx-auto mb-4 inline-block" style="max-width: 300px;">
+              <div class="mx-auto mb-4 inline-block p-4 bg-white border rounded-lg" style="max-width: 320px;">
                 ${svgText}
               </div>
-              <p class="text-sm text-gray-600 mb-2">Guests can scan this QR code to access Table ${invitation?.table_number || 'N/A'}</p>
-              <p class="text-xs text-gray-500 break-all">Link: ${invitationUrl}</p>
+              <p class="text-sm text-gray-600 mb-2">Guests can scan this QR code to access the ordering system</p>
+              <p class="text-xs text-gray-500 break-all bg-gray-100 p-2 rounded">${invitationUrl}</p>
             </div>
           `,
           showCancelButton: true,
-          confirmButtonText: 'Download QR Code',
+          confirmButtonText: 'Download SVG',
           cancelButtonText: 'Close',
-          width: '450px'
+          width: '500px'
         }).then((result) => {
           if (result.isConfirmed) {
-            // Create download link for SVG
+            // Download SVG
             const link = document.createElement('a');
             link.href = svgDataUrl;
             link.download = `table-${invitation?.table_number || 'unknown'}-qr-code.svg`;
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
+            
+            Swal.fire({
+              title: 'Downloaded!',
+              text: 'QR code has been downloaded as SVG file',
+              icon: 'success',
+              timer: 2000,
+              showConfirmButton: false
+            });
           }
         });
         
       } else {
-        // If it's not SVG, try to handle as JSON (fallback)
-        const text = await res.text();
-        try {
-          const data = JSON.parse(text);
-          
-          if (!data.qr_code || !data.invitation_url) {
-            throw new Error("Invalid QR code response format");
-          }
-          
-          // Show QR code in modal (JSON format)
-          await Swal.fire({
-            title: 'QR Code for Guest Access',
-            html: `
-              <div class="text-center">
-                <img src="${data.qr_code}" alt="QR Code" class="mx-auto mb-4" style="max-width: 300px;">
-                <p class="text-sm text-gray-600 mb-2">Guests can scan this QR code to access the ordering system</p>
-                <p class="text-xs text-gray-500 break-all">Link: ${data.invitation_url}</p>
-              </div>
-            `,
-            showCancelButton: true,
-            confirmButtonText: 'Download QR Code',
-            cancelButtonText: 'Close',
-            width: '450px'
-          }).then((result) => {
-            if (result.isConfirmed) {
-              const link = document.createElement('a');
-              link.href = data.qr_code;
-              link.download = `qr-code-${token}.png`;
-              document.body.appendChild(link);
-              link.click();
-              document.body.removeChild(link);
-            }
-          });
-        } catch (parseError) {
-          throw new Error(`Unexpected response format. Content-Type: ${contentType}`);
+        // Fallback: If backend returns different format, try to handle as redirect
+        if (res.redirected) {
+          // Backend is redirecting to Google Charts (your fallback)
+          window.open(res.url, '_blank');
+        } else {
+          throw new Error(`Unexpected content type: ${contentType}`);
         }
       }
       
@@ -416,11 +538,9 @@ const InvitationManagement = () => {
       
       let errorMessage = 'Failed to generate QR code';
       if (error.message.includes('404')) {
-        errorMessage = 'QR code endpoint not found. Please check if the route exists in your Laravel backend.';
+        errorMessage = 'QR code endpoint not found. Please contact your administrator.';
       } else if (error.message.includes('500')) {
-        errorMessage = 'Server error. Please check your Laravel backend logs.';
-      } else if (error.message.includes('Unexpected response format')) {
-        errorMessage = 'Server returned unexpected format. Expected SVG or JSON response.';
+        errorMessage = 'Server error. Please try again later.';
       }
       
       Swal.fire({
@@ -436,15 +556,51 @@ const InvitationManagement = () => {
     return new Date(expiresAt) < new Date();
   };
 
+  const getTimeRemaining = (expiresAt) => {
+    const now = new Date();
+    const expiry = new Date(expiresAt);
+    const diff = expiry - now;
+    
+    if (diff <= 0) return 'Expired';
+    
+    const hours = Math.floor(diff / (1000 * 60 * 60));
+    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+    
+    if (hours > 24) {
+      const days = Math.floor(hours / 24);
+      return `${days}d ${hours % 24}h`;
+    }
+    if (hours > 0) {
+      return `${hours}h ${minutes}m`;
+    }
+    return `${minutes}m`;
+  };
+
   const filteredInvitations = invitations.filter((invitation) =>
     invitation.token.toLowerCase().includes(searchTerm.toLowerCase()) ||
     new Date(invitation.created_at).toLocaleDateString().includes(searchTerm) ||
     (invitation.table_number && invitation.table_number.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
-  if (loading) {
+  if (!user) {
     return (
       <div className="flex justify-center items-center py-8">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+      </div>
+    );
+  }
+
+  if (!hasViewPermission) {
+    return (
+      <div className="bg-red-50 border border-red-200 rounded-md p-4">
+        <p className="text-red-500">Access denied. You don't have permission to view invitations.</p>
+      </div>
+    );
+  }
+
+  if (loading && invitations.length === 0) {
+    return (
+      <div className="flex flex-col justify-center items-center py-8">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto mb-2"></div>
         <p className="text-gray-600">Loading invitations...</p>
       </div>
@@ -456,9 +612,10 @@ const InvitationManagement = () => {
       <div className="bg-red-50 border border-red-200 rounded-md p-4">
         <p className="text-red-500">Error: {error}</p>
         <button 
-          onClick={fetchInvitations} 
-          className="mt-2 px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600"
+          onClick={() => fetchInvitations()} 
+          className="mt-2 px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600 flex items-center gap-2"
         >
+          <HiRefresh className="w-4 h-4" />
           Retry
         </button>
       </div>
@@ -469,21 +626,45 @@ const InvitationManagement = () => {
     <div className="p-4">
       {/* Header Section */}
       <div className="mb-6">
-        <h1 className="text-3xl font-bold mb-2 text-black">Guest Access Management</h1>
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h1 className="text-3xl font-bold text-black">Guest Access Management</h1>
+            <p className="text-gray-600 mt-1">Create and manage table invitations for guests</p>
+          </div>
+          <button
+            onClick={() => fetchInvitations(true)}
+            className="px-3 py-2 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-md transition-colors duration-200 flex items-center gap-2"
+            disabled={refreshing}
+            title="Refresh invitations"
+          >
+            <HiRefresh className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
+            {refreshing ? 'Refreshing...' : 'Refresh'}
+          </button>
+        </div>
+        
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-          <h2 className="text-xl font-semibold text-black">Active Invitations ({filteredInvitations.length})</h2>
+          <h2 className="text-xl font-semibold text-black">
+            Active Invitations ({filteredInvitations.length})
+            {invitations.filter(inv => !isExpired(inv.expires_at)).length !== invitations.length && (
+              <span className="text-sm font-normal text-gray-500 ml-2">
+                ({invitations.filter(inv => !isExpired(inv.expires_at)).length} active)
+              </span>
+            )}
+          </h2>
+          
           <div className="flex flex-col sm:flex-row items-center space-y-2 sm:space-y-0 sm:space-x-4">
             {/* Search Bar */}
             <div className="relative w-full sm:w-auto">
               <HiSearch className="absolute left-3 top-2.5 text-gray-400" />
               <input
                 type="text"
-                placeholder="Search invitations..."
+                placeholder="Search by token, table, or date..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full sm:w-64 pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-black"
+                className="w-full sm:w-80 pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-black"
               />
             </div>
+            
             {/* Sort Dropdown */}
             <select
               value={sortOption}
@@ -493,15 +674,18 @@ const InvitationManagement = () => {
               <option value="Newest">Sort by: Newest</option>
               <option value="Oldest">Sort by: Oldest</option>
             </select>
-            {/* Create Button */}
-            <button
-              onClick={handleCreateInvitation}
-              className="w-full sm:w-auto px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors duration-200 flex items-center justify-center gap-2"
-              disabled={loading}
-            >
-              <HiPlus className="w-4 h-4" />
-              Create Invitation
-            </button>
+            
+            {/* Create Button - Only show for admin/shop_owner */}
+            {hasCreatePermission && (
+              <button
+                onClick={handleCreateInvitation}
+                className="w-full sm:w-auto px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors duration-200 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                disabled={creating}
+              >
+                <HiPlus className="w-4 h-4" />
+                {creating ? 'Creating...' : 'Create Invitation'}
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -509,13 +693,21 @@ const InvitationManagement = () => {
       {/* Empty State */}
       {filteredInvitations.length === 0 ? (
         <div className="bg-gray-50 border border-gray-200 rounded-md p-8 text-center">
-          <p className="text-gray-600">
-            {invitations.length === 0 ? "No invitation links created yet." : "No invitations match your search."}
+          <div className="text-gray-400 text-6xl mb-4">🎫</div>
+          <h3 className="text-lg font-medium text-gray-900 mb-2">
+            {invitations.length === 0 ? "No invitations created yet" : "No invitations match your search"}
+          </h3>
+          <p className="text-gray-600 mb-4">
+            {invitations.length === 0 
+              ? "Create your first table invitation to get started" 
+              : "Try adjusting your search terms"
+            }
           </p>
-          {invitations.length === 0 && (
+          {invitations.length === 0 && hasCreatePermission && (
             <button
               onClick={handleCreateInvitation}
-              className="mt-4 px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors duration-200"
+              className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors duration-200"
+              disabled={creating}
             >
               Create Your First Invitation
             </button>
@@ -526,27 +718,41 @@ const InvitationManagement = () => {
           {/* Desktop Table */}
           <div className="hidden lg:block">
             <div className="overflow-x-auto">
-              <table className="w-full border-collapse border border-gray-300 text-black text-center bg-white rounded-lg">
+              <table className="w-full border-collapse border border-gray-300 text-black text-center bg-white rounded-lg shadow-sm">
                 <thead className="bg-gray-100">
                   <tr>
                     <th className="p-3 border border-gray-300 font-semibold">Token</th>
                     <th className="p-3 border border-gray-300 font-semibold">Table</th>
                     <th className="p-3 border border-gray-300 font-semibold">Status</th>
                     <th className="p-3 border border-gray-300 font-semibold">Created</th>
-                    <th className="p-3 border border-gray-300 font-semibold">Expires</th>
                     <th className="p-3 border border-gray-300 font-semibold">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   {filteredInvitations.map((invitation) => (
-                    <tr key={invitation.token} className="hover:bg-gray-50" data-token={invitation.token}>
+                    <tr 
+                      key={invitation.token} 
+                      className={`hover:bg-gray-50 transition-colors ${
+                        isExpired(invitation.expires_at) ? 'opacity-60' : ''
+                      }`} 
+                      data-token={invitation.token}
+                    >
                       <td className="p-3 border border-gray-300 font-mono text-sm">
-                        <div className="truncate max-w-32" title={invitation.token}>
-                          {invitation.token.substring(0, 12)}...
+                        <div className="flex items-center justify-center">
+                          <span className="truncate max-w-32" title={invitation.token}>
+                            {invitation.token.substring(0, 12)}...
+                          </span>
+                          <button
+                            onClick={() => copyInvitationLink(invitation)}
+                            className="ml-2 text-gray-400 hover:text-blue-500 transition-colors"
+                            title="Copy token"
+                          >
+                            <HiClipboard className="w-3 h-3" />
+                          </button>
                         </div>
                       </td>
                       <td className="p-3 border border-gray-300">
-                        <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-medium">
+                        <span className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-medium">
                           {invitation.table_number || 'N/A'}
                         </span>
                       </td>
@@ -567,20 +773,12 @@ const InvitationManagement = () => {
                           </div>
                         </div>
                       </td>
-                      <td className="p-3 border border-gray-300 text-xs">
-                        <div className="whitespace-nowrap">
-                          <div>{new Date(invitation.expires_at).toLocaleDateString()}</div>
-                          <div className="text-gray-500">
-                            {new Date(invitation.expires_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
-                          </div>
-                        </div>
-                      </td>
                       <td className="p-3 border border-gray-300">
                         <div className="flex justify-center space-x-2">
                           <button
                             onClick={() => generateQRCode(invitation.token)}
-                            className="bg-green-500 text-white hover:bg-green-600 px-3 py-1 rounded text-sm transition-colors duration-200 flex items-center gap-1"
-                            disabled={loading}
+                            className="bg-green-500 text-white hover:bg-green-600 px-3 py-1 rounded text-sm transition-colors duration-200 flex items-center gap-1 disabled:opacity-50"
+                            disabled={isExpired(invitation.expires_at)}
                             title="Generate QR Code"
                           >
                             <HiQrcode className="w-3 h-3" />
@@ -589,20 +787,21 @@ const InvitationManagement = () => {
                           <button
                             onClick={() => copyInvitationLink(invitation)}
                             className="bg-blue-500 text-white hover:bg-blue-600 px-3 py-1 rounded text-sm transition-colors duration-200 flex items-center gap-1"
-                            disabled={loading}
                             title="Copy Invitation Link"
                           >
                             <HiClipboard className="w-3 h-3" />
                             Copy
                           </button>
-                          <button
-                            onClick={() => handleDeleteInvitation(invitation.token, invitation.created_at)}
-                            className="bg-red-500 text-white hover:bg-red-600 px-3 py-1 rounded text-sm transition-colors duration-200 flex items-center gap-1"
-                            disabled={loading}
-                          >
-                            <HiTrash className="w-3 h-3" />
-                            Revoke
-                          </button>
+                          {/* Only show revoke button for users with create permission */}
+                          {hasCreatePermission && (
+                            <button
+                              onClick={() => handleDeleteInvitation(invitation.token, invitation.created_at)}
+                              className="bg-red-500 text-white hover:bg-red-600 px-3 py-1 rounded text-sm transition-colors duration-200 flex items-center gap-1"
+                            >
+                              <HiTrash className="w-3 h-3" />
+                              Revoke
+                            </button>
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -615,13 +814,28 @@ const InvitationManagement = () => {
           {/* Mobile/Tablet Card View */}
           <div className="lg:hidden space-y-3">
             {filteredInvitations.map((invitation) => (
-              <div key={invitation.token} className="bg-white border border-gray-300 rounded-lg p-4" data-token={invitation.token}>
+              <div 
+                key={invitation.token} 
+                className={`bg-white border border-gray-300 rounded-lg p-4 transition-all ${
+                  isExpired(invitation.expires_at) ? 'opacity-60' : ''
+                }`} 
+                data-token={invitation.token}
+              >
                 <div className="flex justify-between items-start mb-3">
-                  <div>
-                    <h3 className="font-medium text-black font-mono text-sm">
-                      {invitation.token.substring(0, 16)}...
-                    </h3>
-                    <div className="flex items-center gap-2 mt-1">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-2">
+                      <h3 className="font-medium text-black font-mono text-sm">
+                        {invitation.token.substring(0, 16)}...
+                      </h3>
+                      <button
+                        onClick={() => copyInvitationLink(invitation)}
+                        className="text-gray-400 hover:text-blue-500 transition-colors"
+                        title="Copy token"
+                      >
+                        <HiClipboard className="w-4 h-4" />
+                      </button>
+                    </div>
+                    <div className="flex items-center gap-2 mb-2">
                       <span className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${
                         isExpired(invitation.expires_at) 
                           ? 'bg-red-100 text-red-800' 
@@ -629,48 +843,98 @@ const InvitationManagement = () => {
                       }`}>
                         {isExpired(invitation.expires_at) ? 'Expired' : 'Active'}
                       </span>
-                      <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-medium">
+                      <span className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-medium">
                         Table: {invitation.table_number || 'N/A'}
                       </span>
                     </div>
                   </div>
                 </div>
                 
-                <div className="text-xs text-gray-500 mb-3">
-                  <div>Created: {new Date(invitation.created_at).toLocaleDateString()} at {new Date(invitation.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</div>
-                  <div>Expires: {new Date(invitation.expires_at).toLocaleDateString()} at {new Date(invitation.expires_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</div>
+                <div className="text-xs text-gray-500 mb-3 bg-gray-50 p-2 rounded">
+                  <div className="flex justify-between">
+                    <span>Created:</span>
+                    <span>{new Date(invitation.created_at).toLocaleDateString()} at {new Date(invitation.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+                  </div>
                 </div>
                 
                 <div className="flex justify-end space-x-2">
                   <button
                     onClick={() => generateQRCode(invitation.token)}
-                    className="bg-green-500 text-white hover:bg-green-600 px-3 py-1 rounded text-sm flex items-center gap-1"
+                    className="bg-green-500 text-white hover:bg-green-600 px-3 py-2 rounded text-sm flex items-center gap-1 disabled:opacity-50 transition-colors"
+                    disabled={isExpired(invitation.expires_at)}
                     title="Generate QR Code"
                   >
-                    <HiQrcode className="w-3 h-3" />
-                    QR
+                    <HiQrcode className="w-4 h-4" />
+                    QR Code
                   </button>
                   <button
                     onClick={() => copyInvitationLink(invitation)}
-                    className="bg-blue-500 text-white hover:bg-blue-600 px-3 py-1 rounded text-sm flex items-center gap-1"
+                    className="bg-blue-500 text-white hover:bg-blue-600 px-3 py-2 rounded text-sm flex items-center gap-1 transition-colors"
                     title="Copy Link"
                   >
-                    <HiClipboard className="w-3 h-3" />
-                    Copy
+                    <HiClipboard className="w-4 h-4" />
+                    Copy Link
                   </button>
-                  <button
-                    onClick={() => handleDeleteInvitation(invitation.token, invitation.created_at)}
-                    className="bg-red-500 text-white hover:bg-red-600 px-3 py-1 rounded text-sm flex items-center gap-1"
-                  >
-                    <HiTrash className="w-3 h-3" />
-                    Revoke
-                  </button>
+                  {/* Only show revoke button for users with create permission */}
+                  {hasCreatePermission && (
+                    <button
+                      onClick={() => handleDeleteInvitation(invitation.token, invitation.created_at)}
+                      className="bg-red-500 text-white hover:bg-red-600 px-3 py-2 rounded text-sm flex items-center gap-1 transition-colors"
+                    >
+                      <HiTrash className="w-4 h-4" />
+                      Revoke
+                    </button>
+                  )}
                 </div>
               </div>
             ))}
           </div>
         </>
       )}
+
+      {/* Statistics Footer */}
+      {invitations.length > 0 && (
+        <div className="mt-6 bg-gray-50 border border-gray-200 rounded-lg p-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+            <div>
+              <div className="text-2xl font-bold text-blue-600">{invitations.length}</div>
+              <div className="text-sm text-gray-600">Total Invitations</div>
+            </div>
+            <div>
+              <div className="text-2xl font-bold text-green-600">
+                {invitations.filter(inv => !isExpired(inv.expires_at)).length}
+              </div>
+              <div className="text-sm text-gray-600">Active</div>
+            </div>
+            <div>
+              <div className="text-2xl font-bold text-red-600">
+                {invitations.filter(inv => isExpired(inv.expires_at)).length}
+              </div>
+              <div className="text-sm text-gray-600">Expired</div>
+            </div>
+            <div>
+              <div className="text-2xl font-bold text-purple-600">
+                {new Set(invitations.map(inv => inv.table_number)).size}
+              </div>
+              <div className="text-sm text-gray-600">Unique Tables</div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Custom CSS for better styling */}
+      <style jsx global>{`
+        .swal2-input {
+          text-transform: uppercase;
+        }
+        .swal2-input:focus {
+          border-color: #3b82f6 !important;
+          box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1) !important;
+        }
+        .swal2-html-container {
+          line-height: 1.5;
+        }
+      `}</style>
     </div>
   );
 };
