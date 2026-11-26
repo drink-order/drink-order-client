@@ -19,8 +19,8 @@ export async function POST(req) {
         return NextResponse.json({ message: 'Latitude or longitude is out of range.' }, { status: 400 });
     }
 
-    const shopLatitude = 11.570446008235015; // Example shop latitude
-    const shopLongitude = 104.89154786215639; // Example shop longitude
+    const shopLatitude = 11.507937025778226; // Example shop latitude
+    const shopLongitude = 104.88473885684941; // Example shop longitude
     const allowedRadius = 3; // km
     
     const distance = haversine(shopLatitude, shopLongitude, latitude, longitude);
