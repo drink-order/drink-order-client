@@ -2,17 +2,26 @@ import { NextResponse } from 'next/server';
 import haversine from '../../utils/haversine';
 
 export async function POST(req) {
-    const { latitude, longitude } = await req.json();
+    let body;
+    try {
+        body = await req.json();
+    } catch {
+        return NextResponse.json({ message: 'Invalid JSON body.' }, { status: 400 });
+    }
+
+    const { latitude, longitude } = body ?? {};
 
     if (typeof latitude !== 'number' || typeof longitude !== 'number') {
         return NextResponse.json({ message: 'Latitude and longitude must be numbers.' }, { status: 400 });
     }
 
-    console.log(`User location: Latitude ${latitude}, Longitude ${longitude}`);
+    if (latitude < -90 || latitude > 90 || longitude < -180 || longitude > 180) {
+        return NextResponse.json({ message: 'Latitude or longitude is out of range.' }, { status: 400 });
+    }
 
     const shopLatitude = 11.570446008235015; // Example shop latitude
     const shopLongitude = 104.89154786215639; // Example shop longitude
-    const allowedRadius = 3; // 1 km
+    const allowedRadius = 3; // km
     
     const distance = haversine(shopLatitude, shopLongitude, latitude, longitude);
 

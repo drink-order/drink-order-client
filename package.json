@@ -9,34 +9,37 @@
     "lint": "next lint --fix"
   },
   "dependencies": {
-    "@hookform/resolvers": "^3.9.1",
+    "@hookform/resolvers": "^5.9.2",
     "@lottiefiles/dotlottie-react": "^0.12.1",
     "@radix-ui/react-slot": "^1.1.1",
     "@radix-ui/react-toast": "^1.2.4",
-    "bcrypt": "^5.1.1",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "input-otp": "^1.4.2",
     "lucide-react": "^0.468.0",
-    "next": "15.3.8",
+    "next": "15.5.29",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
-    "react-hook-form": "^7.54.1",
+    "react-hook-form": "^7.92.0",
     "react-icons": "^5.4.0",
-    "sweetalert2": "11.6.13",
+    "sweetalert2": "11.26.26",
     "tailwind-merge": "^2.5.5",
     "tailwindcss-animate": "^1.0.7",
-    "zod": "^3.24.1"
+    "zod": "^4.6.7"
   },
   "devDependencies": {
-    "@types/jsonwebtoken": "^9.0.7",
     "@types/node": "22.10.2",
     "@types/react": "19.0.2",
     "autoprefixer": "^10.4.21",
     "eslint": "^8",
-    "eslint-config-next": "15.0.3",
-    "postcss": "^8.5.5",
+    "eslint-config-next": "15.5.29",
+    "postcss": "^8.5.23",
     "tailwindcss": "^3.4.17",
     "typescript": "^5.7.2"
+  },
+  "overrides": {
+    "next": {
+      "postcss": "^8.5.23"
+    }
   }
 }
